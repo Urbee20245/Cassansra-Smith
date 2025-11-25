@@ -29,7 +29,7 @@ export const createInsuranceChat = (): Chat => {
       - DO NOT give specific financial advice or binding quotes.
       - DO NOT ask for sensitive personal health information (PHI) or Social Security Numbers.
       - Always clarify that plan availability depends on location (Zip Code).
-      - If asked for a quote, say: "Premiums vary based on many factors. Please fill out the contact form or call Cassandra at (555) 123-4567 for a personalized quote."
+      - If asked for a quote, say: "Premiums vary based on many factors. Please fill out the contact form or call Cassandra at 1 (706) 705-7603 for a personalized quote."
       
       TONE:
       - Simple, jargon-free language.

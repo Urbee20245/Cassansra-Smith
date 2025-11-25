@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { ShieldCheck, Menu, X, Phone, Mail, MapPin, Facebook, Linkedin, Twitter } from 'lucide-react';
-import ChatWidget from './ChatWidget';
 
 const Layout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -19,11 +18,11 @@ const Layout: React.FC = () => {
       <div className="bg-slate-900 text-slate-300 text-xs py-2 px-4">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
           <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1"><Phone size={12} /> (555) 123-4567</span>
-            <span className="flex items-center gap-1"><Mail size={12} /> cassandra@smithinsurance.com</span>
+            <span className="flex items-center gap-1"><Phone size={12} /> 1 (706) 705-7603</span>
+            <span className="flex items-center gap-1"><Mail size={12} /> csmithgapbridge@gmail.com</span>
           </div>
           <div className="hidden sm:flex gap-4">
-            <span>Licensed in GA, FL, TX, NC</span>
+            <span>Licensed in GA, SC</span>
           </div>
         </div>
       </div>
@@ -148,11 +147,11 @@ const Layout: React.FC = () => {
                 </li>
                 <li className="flex items-center gap-3">
                   <Phone className="h-5 w-5 text-primary-400 shrink-0" />
-                  <span>(555) 123-4567</span>
+                  <span>1 (706) 705-7603</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Mail className="h-5 w-5 text-primary-400 shrink-0" />
-                  <span>cassandra@smithinsurance.com</span>
+                  <span>csmithgapbridge@gmail.com</span>
                 </li>
               </ul>
             </div>
@@ -161,11 +160,14 @@ const Layout: React.FC = () => {
           <div className="border-t border-slate-800 mt-12 pt-8 text-center text-xs text-slate-500">
             <p>&copy; {new Date().getFullYear()} Cassandra Smith Insurance Services. All rights reserved.</p>
             <p className="mt-2">Not connected with or endorsed by the U.S. government or the federal Medicare program.</p>
+            <p className="mt-4">
+              Made with Love ❤️ by <a href="https://jetautomations.ai" target="_blank" rel="noopener noreferrer" className="hover:text-primary-400 transition-colors">
+                Jetautomations.ai
+              </a>
+            </p>
           </div>
         </div>
       </footer>
-
-      <ChatWidget />
     </div>
   );
 };
