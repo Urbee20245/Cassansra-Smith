@@ -94,7 +94,7 @@ Sent from Cassandra Smith Insurance Website`;
             name="firstName"
             value={formData.firstName}
             onChange={handleChange}
-            className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition" 
+            className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition" 
           />
         </div>
         <div>
@@ -105,7 +105,7 @@ Sent from Cassandra Smith Insurance Website`;
             name="lastName"
             value={formData.lastName}
             onChange={handleChange}
-            className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition" 
+            className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition" 
           />
         </div>
       </div>
@@ -117,7 +117,7 @@ Sent from Cassandra Smith Insurance Website`;
           name="email"
           value={formData.email}
           onChange={handleChange}
-          className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition" 
+          className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition" 
         />
       </div>
       <div>
@@ -127,7 +127,7 @@ Sent from Cassandra Smith Insurance Website`;
           name="phone"
           value={formData.phone}
           onChange={handleChange}
-          className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition" 
+          className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition" 
         />
       </div>
       <div>
@@ -136,12 +136,12 @@ Sent from Cassandra Smith Insurance Website`;
           name="topic"
           value={formData.topic}
           onChange={handleChange}
-          className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition mb-3"
+          className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition mb-3"
         >
-          <option>I need help with Medicare</option>
-          <option>I need help with ACA / Marketplace</option>
-          <option>Life Insurance / Financial Planning</option>
-          <option>Other inquiry</option>
+          <option className="bg-slate-800 text-white">I need help with Medicare</option>
+          <option className="bg-slate-800 text-white">I need help with ACA / Marketplace</option>
+          <option className="bg-slate-800 text-white">Life Insurance / Financial Planning</option>
+          <option className="bg-slate-800 text-white">Other inquiry</option>
         </select>
         <textarea 
           required 
@@ -149,7 +149,7 @@ Sent from Cassandra Smith Insurance Website`;
           name="message"
           value={formData.message}
           onChange={handleChange}
-          className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition" 
+          className="w-full px-4 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition" 
           placeholder="Tell me a bit about your situation..."
         ></textarea>
       </div>
