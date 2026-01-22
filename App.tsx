@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import Layout from './components/Layout';
-import { HeartPulse, FileHeart, Users, CheckCircle, ArrowRight, Calendar, Star, Shield, Phone, Mail, MapPin, ChevronDown, ChevronUp, Umbrella, Home as HomeIcon, TrendingUp, Coins, Landmark, Briefcase, Stethoscope, Eye, Building2, PiggyBank, Scale } from 'lucide-react';
+import { HeartPulse, FileHeart, Users, CheckCircle, ArrowRight, Calendar, Star, Shield, Phone, Mail, MapPin, ChevronDown, ChevronUp, Umbrella, Home as HomeIcon, TrendingUp, Coins, Landmark, Briefcase, Stethoscope, Eye, Building2, PiggyBank, Scale, Timer, AlertCircle, Thermometer } from 'lucide-react';
 
 // --- Components ---
 
@@ -26,7 +26,12 @@ const AccordionItem = ({ title, children }: { title: string, children?: React.Re
   );
 };
 
+// --- Heatmap Qualifying Contact Form ---
+
+type FormStep = 'inquiry' | 'urgency' | 'priority' | 'final_form' | 'future_calendar';
+
 const ContactForm = () => {
+  const [step, setStep] = useState<FormStep>('inquiry');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
   const [formData, setFormData] = useState({
     firstName: '',
@@ -34,126 +39,235 @@ const ContactForm = () => {
     email: '',
     phone: '',
     topic: 'IUL & Life Insurance Planning',
+    timeline: '', // ASAP, Next week, Next month, Just browsing
+    priorityScore: 0, // 1-10
+    futureDate: '',
     message: ''
   });
 
+  const isHighIntent = useMemo(() => {
+    return formData.timeline === 'ASAP / Within 48 Hours' && formData.priorityScore >= 7;
+  }, [formData.timeline, formData.priorityScore]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const setTimeline = (val: string) => {
+    setFormData(prev => ({ ...prev, timeline: val }));
+    setStep('priority');
+  };
+
+  const setPriority = (val: number) => {
+    setFormData(prev => ({ ...prev, priorityScore: val }));
+    // Determine the next step based on the heatmap logic
+    const urgent = formData.timeline === 'ASAP / Within 48 Hours' && val >= 7;
+    if (urgent) {
+      setStep('final_form');
+    } else {
+      setStep('future_calendar');
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('submitting');
 
-    const subject = `New Website Inquiry: ${formData.topic} - ${formData.firstName} ${formData.lastName}`;
+    const intentLevel = isHighIntent ? '🔥 HIGH INTENT (URGENT)' : '❄️ PLANNING / FUTURE';
+    const subject = `${intentLevel}: ${formData.topic} Inquiry - ${formData.firstName} ${formData.lastName}`;
     const body = `Name: ${formData.firstName} ${formData.lastName}
 Email: ${formData.email}
 Phone: ${formData.phone}
 Topic: ${formData.topic}
+Timeline: ${formData.timeline}
+Priority Level: ${formData.priorityScore}/10
+${formData.futureDate ? `Requested Follow-up Date: ${formData.futureDate}` : ''}
 
 Message:
 ${formData.message}
 
 --
-Sent from Cassandra Smith Insurance Website`;
+Lead Qualified via Heatmap Form`;
 
     const mailtoLink = `mailto:csmithgapbridge@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = mailtoLink;
     setStatus('success');
   };
 
+  const stepsInfo = {
+    inquiry: { title: "What can I help you with?", progress: 25 },
+    urgency: { title: "When do you need coverage?", progress: 50 },
+    priority: { title: "How important is this?", progress: 75 },
+    final_form: { title: "Urgent Strategy Session", progress: 100 },
+    future_calendar: { title: "Plan for the Future", progress: 100 }
+  };
+
   if (status === 'success') {
     return (
-      <div className="bg-green-50 text-green-800 p-8 rounded-xl text-center border border-green-200">
-        <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-600" />
-        <h3 className="text-xl font-bold mb-2">Message Prepared!</h3>
-        <p>Your email client should have opened with your message ready to send.</p>
-        <p className="mt-2 text-sm">If it didn't open, please email me directly at <br/><strong>csmithgapbridge@gmail.com</strong></p>
-        <button onClick={() => setStatus('idle')} className="mt-6 text-green-700 font-semibold hover:underline">Send another message</button>
+      <div className="bg-white p-8 rounded-2xl text-center animate-fade-in border border-slate-100 shadow-xl">
+        <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
+          <CheckCircle className="w-10 h-10 text-green-500" />
+        </div>
+        <h3 className="text-2xl font-bold text-slate-900 mb-2">Request Ready!</h3>
+        <p className="text-slate-600 mb-6">Your message has been prepared for Cassandra. Your email app should open automatically.</p>
+        <p className="text-sm text-slate-500 mb-8 italic">"I'll be reviewing your goals and reaching out soon." — Cassandra</p>
+        <button onClick={() => { setStep('inquiry'); setStatus('idle'); }} className="text-primary-600 font-bold hover:underline">Start New Request</button>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-bold text-slate-800 mb-1">First Name</label>
-          <input 
-            required 
-            type="text" 
-            name="firstName"
-            value={formData.firstName}
-            onChange={handleChange}
-            className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:ring-2 focus:ring-primary-500 outline-none transition" 
-          />
+    <div className="max-w-xl mx-auto">
+      {/* Progress Bar */}
+      <div className="mb-8">
+        <div className="flex justify-between items-end mb-2">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{stepsInfo[step].title}</span>
+          <span className="text-xs font-bold text-slate-900">{stepsInfo[step].progress}%</span>
         </div>
-        <div>
-          <label className="block text-sm font-bold text-slate-800 mb-1">Last Name</label>
-          <input 
-            required 
-            type="text" 
-            name="lastName"
-            value={formData.lastName}
-            onChange={handleChange}
-            className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:ring-2 focus:ring-primary-500 outline-none transition" 
-          />
+        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-secondary-500 transition-all duration-500 ease-out" 
+            style={{ width: `${stepsInfo[step].progress}%` }}
+          ></div>
         </div>
       </div>
-      <div>
-        <label className="block text-sm font-bold text-slate-800 mb-1">Email Address</label>
-        <input 
-          required 
-          type="email" 
-          name="email"
-          value={formData.email}
-          onChange={handleChange}
-          className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:ring-2 focus:ring-primary-500 outline-none transition" 
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-bold text-slate-800 mb-1">Phone Number</label>
-        <input 
-          type="tel" 
-          name="phone"
-          value={formData.phone}
-          onChange={handleChange}
-          className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:ring-2 focus:ring-primary-500 outline-none transition" 
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-bold text-slate-800 mb-1">Inquiry Type</label>
-        <select 
-          name="topic"
-          value={formData.topic}
-          onChange={handleChange}
-          className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:ring-2 focus:ring-primary-500 outline-none transition mb-3"
-        >
-          <option>IUL & Life Insurance Planning</option>
-          <option>Retirement & Annuities</option>
-          <option>Medicare Solutions</option>
-          <option>ACA / Health Marketplace</option>
-          <option>General Question</option>
-        </select>
-        <textarea 
-          required 
-          rows={4} 
-          name="message"
-          value={formData.message}
-          onChange={handleChange}
-          className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:ring-2 focus:ring-primary-500 outline-none transition" 
-          placeholder="Tell me a bit about your goals or situation..."
-        ></textarea>
-      </div>
-      <button disabled={status === 'submitting'} type="submit" className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-lg shadow-md hover:shadow-lg transition-all flex justify-center items-center gap-2">
-        {status === 'submitting' ? 'Preparing...' : 'Secure Your Consultation'}
-        {status === 'idle' && <ArrowRight size={18} />}
-      </button>
-    </form>
+
+      {step === 'inquiry' && (
+        <div className="space-y-6 animate-fade-in">
+          <div className="grid grid-cols-1 gap-3">
+            {[
+              { id: 'IUL & Life Insurance Planning', icon: <Landmark className="w-5 h-5" /> },
+              { id: 'Retirement & Annuities', icon: <PiggyBank className="w-5 h-5" /> },
+              { id: 'Medicare Solutions', icon: <HeartPulse className="w-5 h-5" /> },
+              { id: 'ACA / Health Marketplace', icon: <FileHeart className="w-5 h-5" /> },
+              { id: 'General Question', icon: <Users className="w-5 h-5" /> }
+            ].map((opt) => (
+              <button
+                key={opt.id}
+                onClick={() => { setFormData({ ...formData, topic: opt.id }); setStep('urgency'); }}
+                className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-secondary-400 hover:bg-secondary-50 transition-all text-left group"
+              >
+                <div className="p-2 bg-slate-100 rounded-lg group-hover:bg-secondary-100 group-hover:text-secondary-600 transition-colors">
+                  {opt.icon}
+                </div>
+                <span className="font-bold text-slate-800">{opt.id}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {step === 'urgency' && (
+        <div className="space-y-6 animate-fade-in">
+          <p className="text-slate-600 mb-6">To better assist you, how soon do you need to finalize your coverage?</p>
+          <div className="grid grid-cols-1 gap-3">
+            {[
+              { val: 'ASAP / Within 48 Hours', desc: 'Urgent need, ready to start now', color: 'border-red-200 hover:bg-red-50' },
+              { val: 'Within the next week', desc: 'Active searching, making decisions soon', color: 'border-orange-200 hover:bg-orange-50' },
+              { val: 'In the next 30 days', desc: 'Planning ahead, reviewing options', color: 'border-blue-200 hover:bg-blue-50' },
+              { val: 'Just browsing / Education', desc: 'No immediate rush, just curious', color: 'border-slate-200 hover:bg-slate-50' }
+            ].map((opt) => (
+              <button
+                key={opt.val}
+                onClick={() => setTimeline(opt.val)}
+                className={`p-5 rounded-xl border-2 ${opt.color} transition-all text-left flex justify-between items-center group`}
+              >
+                <div>
+                  <div className="font-bold text-slate-900">{opt.val}</div>
+                  <div className="text-sm text-slate-500">{opt.desc}</div>
+                </div>
+                <ArrowRight size={20} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
+              </button>
+            ))}
+          </div>
+          <button onClick={() => setStep('inquiry')} className="text-slate-400 text-sm font-bold hover:text-slate-600 transition-colors">← Back</button>
+        </div>
+      )}
+
+      {step === 'priority' && (
+        <div className="space-y-8 animate-fade-in text-center">
+          <div className="flex justify-center mb-6">
+            <Thermometer className={`w-16 h-16 ${formData.timeline.includes('ASAP') ? 'text-red-500' : 'text-blue-500'}`} />
+          </div>
+          <p className="text-slate-600 text-lg">On a scale of 1-10, how important is securing this coverage to you right now?</p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+              <button
+                key={num}
+                onClick={() => setPriority(num)}
+                className={`w-12 h-12 rounded-full font-bold transition-all border-2 ${num >= 7 ? 'hover:bg-red-500 hover:border-red-500' : 'hover:bg-secondary-500 hover:border-secondary-500'} hover:text-white flex items-center justify-center border-slate-200 text-slate-700`}
+              >
+                {num}
+              </button>
+            ))}
+          </div>
+          <div className="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-widest px-4">
+            <span>Browsing</span>
+            <span>Priority</span>
+          </div>
+          <button onClick={() => setStep('urgency')} className="text-slate-400 text-sm font-bold hover:text-slate-600 transition-colors block mx-auto">← Back</button>
+        </div>
+      )}
+
+      {step === 'final_form' && (
+        <form onSubmit={handleSubmit} className="space-y-4 animate-fade-in">
+          <div className="bg-red-50 p-4 rounded-xl border border-red-100 flex gap-3 mb-6">
+            <AlertCircle className="text-red-500 shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-red-900">High Urgency Request</p>
+              <p className="text-xs text-red-700">Cassandra prioritizes urgent consultations. Complete the info below for immediate follow-up.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <input required placeholder="First Name" name="firstName" value={formData.firstName} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-secondary-500 transition" />
+            <input required placeholder="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-secondary-500 transition" />
+          </div>
+          <input required type="email" placeholder="Email Address" name="email" value={formData.email} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-secondary-500 transition" />
+          <input required type="tel" placeholder="Phone Number" name="phone" value={formData.phone} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-secondary-500 transition" />
+          <textarea required rows={4} placeholder="Briefly describe your situation..." name="message" value={formData.message} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-secondary-500 transition"></textarea>
+          <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-xl hover:bg-slate-800 transition-all flex justify-center items-center gap-2">
+            Secure My Strategy Session <ArrowRight size={18} />
+          </button>
+          <button type="button" onClick={() => setStep('priority')} className="text-slate-400 text-sm font-bold hover:text-slate-600 transition-colors block mx-auto pt-2">← Back</button>
+        </form>
+      )}
+
+      {step === 'future_calendar' && (
+        <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in">
+          <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100 text-center mb-6">
+            <Calendar className="w-10 h-10 text-blue-500 mx-auto mb-3" />
+            <h3 className="font-bold text-blue-900">Future Planning</h3>
+            <p className="text-sm text-blue-700">Since you're not in a rush, please select a date for Cassandra to reach out and follow up on your {formData.topic} interest.</p>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Requested Follow-up Date</label>
+            <input 
+              required 
+              type="date" 
+              name="futureDate" 
+              value={formData.futureDate} 
+              onChange={handleChange} 
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-primary-500 transition bg-white"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <input required placeholder="First Name" name="firstName" value={formData.firstName} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-primary-500 transition" />
+            <input required placeholder="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-primary-500 transition" />
+          </div>
+          <input required type="email" placeholder="Email Address" name="email" value={formData.email} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-primary-500 transition" />
+          <textarea placeholder="Anything specific you'd like to discuss then?" name="message" value={formData.message} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-primary-500 transition"></textarea>
+
+          <button type="submit" className="w-full bg-primary-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-primary-700 transition-all flex justify-center items-center gap-2">
+            Schedule Future Consultation <ArrowRight size={18} />
+          </button>
+          <button type="button" onClick={() => setStep('priority')} className="text-slate-400 text-sm font-bold hover:text-slate-600 transition-colors block mx-auto pt-2">← Back</button>
+        </form>
+      )}
+    </div>
   );
 }
 
@@ -595,8 +709,8 @@ const Contact: React.FC = () => {
     <div className="bg-slate-50 min-h-screen py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h1 className="text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">Let's Connect</h1>
-          <p className="text-xl text-slate-600 max-w-2xl mx-auto">Ready to secure your future? I'm here to provide expert, personalized guidance for all your insurance and wealth planning needs.</p>
+          <h1 className="text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">Consultation Request</h1>
+          <p className="text-xl text-slate-600 max-w-2xl mx-auto">Complete my qualifying assessment below to ensure we prioritize your specific timeline and needs.</p>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-12">
@@ -638,8 +752,7 @@ const Contact: React.FC = () => {
           </div>
 
           <div className="lg:col-span-2">
-            <div className="bg-white p-10 rounded-3xl shadow-xl border border-slate-100">
-              <h2 className="text-3xl font-bold text-slate-900 mb-8">Schedule a Free Consultation</h2>
+            <div className="bg-white p-6 md:p-10 rounded-3xl shadow-xl border border-slate-100 min-h-[500px] flex flex-col justify-center">
               <ContactForm />
             </div>
           </div>
