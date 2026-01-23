@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { ShieldCheck, Menu, X, Phone, Mail, MapPin, Facebook, Linkedin, Twitter, Scale } from 'lucide-react';
+import { ShieldCheck, Menu, X, Phone, Mail, MapPin, Facebook, Linkedin, Twitter, Scale, Sparkles } from 'lucide-react';
 
 const Layout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -185,11 +185,20 @@ const Layout: React.FC = () => {
                 <p>&copy; {new Date().getFullYear()} Cassandra Smith Wealth & Insurance. All rights reserved.</p>
                 <p className="mt-1">Licensed in GA and SC. Not affiliated with any government agency.</p>
               </div>
-              <p className="text-xs text-slate-500">
-                Crafted with Integrity by <a href="https://customwebsitesplus.com" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-secondary-400 transition-colors font-bold uppercase tracking-widest">
-                  Customwebsitesplus
+              <div className="flex flex-col items-center md:items-end gap-1">
+                <span className="text-[10px] text-slate-600 uppercase tracking-widest font-bold">Digital Excellence by</span>
+                <a 
+                  href="https://customwebsitesplus.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="group relative flex items-center gap-2"
+                >
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-secondary-400 via-secondary-200 to-secondary-500 font-black uppercase tracking-[0.25em] text-sm transition-all duration-300 group-hover:drop-shadow-[0_0_10px_rgba(212,175,55,0.4)]">
+                    Customwebsitesplus
+                  </span>
+                  <Sparkles className="w-3.5 h-3.5 text-secondary-500 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:rotate-12" />
                 </a>
-              </p>
+              </div>
             </div>
           </div>
         </div>
