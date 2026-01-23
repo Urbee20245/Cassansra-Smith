@@ -41,7 +41,8 @@ const ContactForm = () => {
     timeline: '', // ASAP, Next week, Next month, Just browsing
     priorityScore: 0, // 1-10
     futureDate: '',
-    message: ''
+    message: '',
+    permissionGranted: false, // Added permission state
   });
 
   const isHighIntent = useMemo(() => {
@@ -49,8 +50,13 @@ const ContactForm = () => {
   }, [formData.timeline, formData.priorityScore]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    
+    if (type === 'checkbox' && e.target instanceof HTMLInputElement) {
+      setFormData(prev => ({ ...prev, [name]: e.target.checked }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const setTimeline = (val: string) => {
@@ -71,6 +77,13 @@ const ContactForm = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Basic check, though the input is required
+    if (!formData.permissionGranted) {
+        alert("Please check the permission box to proceed.");
+        return;
+    }
+    
     setStatus('submitting');
 
     const intentLevel = isHighIntent ? '🔥 HIGH INTENT (URGENT)' : '❄️ PLANNING / FUTURE';
@@ -225,6 +238,23 @@ Lead Qualified via Heatmap Form`;
           <input required type="email" placeholder="Email Address" name="email" value={formData.email} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-secondary-500 transition" />
           <input required type="tel" placeholder="Phone Number" name="phone" value={formData.phone} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-secondary-500 transition" />
           <textarea required rows={4} placeholder="Briefly describe your situation..." name="message" value={formData.message} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-secondary-500 transition"></textarea>
+          
+          {/* Disclaimer Checkbox for Urgent Form */}
+          <div className="flex items-start gap-3 pt-2">
+            <input 
+              required 
+              type="checkbox" 
+              id="permissionGrantedFinal" 
+              name="permissionGranted" 
+              checked={formData.permissionGranted} 
+              onChange={handleChange} 
+              className="mt-1.5 w-4 h-4 text-secondary-600 bg-gray-100 border-gray-300 rounded focus:ring-secondary-500"
+            />
+            <label htmlFor="permissionGrantedFinal" className="text-xs text-slate-600 leading-relaxed cursor-pointer">
+              I give permission for Cassandra Smith to contact me via phone or email regarding my interest in financial services and insurance products.
+            </label>
+          </div>
+
           <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-xl hover:bg-slate-800 transition-all flex justify-center items-center gap-2">
             Secure My Strategy Session <ArrowRight size={18} />
           </button>
@@ -260,6 +290,22 @@ Lead Qualified via Heatmap Form`;
           <input required type="email" placeholder="Email Address" name="email" value={formData.email} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-primary-500 transition" />
           <textarea placeholder="Anything specific you'd like to discuss then?" name="message" value={formData.message} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-primary-500 transition"></textarea>
 
+          {/* Disclaimer Checkbox for Future Planning Form */}
+          <div className="flex items-start gap-3 pt-2">
+            <input 
+              required 
+              type="checkbox" 
+              id="permissionGrantedFuture" 
+              name="permissionGranted" 
+              checked={formData.permissionGranted} 
+              onChange={handleChange} 
+              className="mt-1.5 w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500"
+            />
+            <label htmlFor="permissionGrantedFuture" className="text-xs text-slate-600 leading-relaxed cursor-pointer">
+              I give permission for Cassandra Smith to contact me via phone or email regarding my interest in financial services and insurance products.
+            </label>
+          </div>
+
           <button type="submit" className="w-full bg-primary-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-primary-700 transition-all flex justify-center items-center gap-2">
             Schedule Future Consultation <ArrowRight size={18} />
           </button>
@@ -273,6 +319,7 @@ Lead Qualified via Heatmap Form`;
 // --- Pages ---
 
 const Home: React.FC = () => {
+// ... (rest of Home component remains unchanged)
   const navigate = useNavigate();
 
   return (
@@ -485,6 +532,7 @@ const Home: React.FC = () => {
 };
 
 const About: React.FC = () => {
+// ... (rest of About component remains unchanged)
   return (
     <div className="bg-white">
       <div className="bg-slate-900 py-24 text-white">
@@ -553,6 +601,7 @@ const About: React.FC = () => {
 };
 
 const Services: React.FC = () => {
+// ... (rest of Services component remains unchanged)
   const navigate = useNavigate();
   return (
     <div className="bg-white">
@@ -704,6 +753,7 @@ const Services: React.FC = () => {
 };
 
 const Contact: React.FC = () => {
+// ... (rest of Contact component remains unchanged)
   return (
     <div className="bg-slate-50 min-h-screen py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
