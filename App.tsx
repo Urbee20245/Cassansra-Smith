@@ -251,7 +251,7 @@ Lead Qualified via Heatmap Form`;
               className="mt-1.5 w-4 h-4 text-secondary-600 bg-gray-100 border-gray-300 rounded focus:ring-secondary-500"
             />
             <label htmlFor="permissionGrantedFinal" className="text-xs text-slate-600 leading-relaxed cursor-pointer">
-              I give permission for Cassandra Smith to contact me via phone or email regarding my interest in financial services and insurance products.
+              I give permission for Cassandra Smith to contact me via phone, SMS, or email regarding my interest in financial services and insurance products. I understand I can unsubscribe from SMS at any time by replying STOP.
             </label>
           </div>
 
@@ -302,7 +302,7 @@ Lead Qualified via Heatmap Form`;
               className="mt-1.5 w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500"
             />
             <label htmlFor="permissionGrantedFuture" className="text-xs text-slate-600 leading-relaxed cursor-pointer">
-              I give permission for Cassandra Smith to contact me via phone or email regarding my interest in financial services and insurance products.
+              I give permission for Cassandra Smith to contact me via phone, SMS, or email regarding my interest in financial services and insurance products. I understand I can unsubscribe from SMS at any time by replying STOP.
             </label>
           </div>
 
