@@ -1,6 +1,5 @@
-
 import React, { useState, useMemo } from 'react';
-import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import { HeartPulse, FileHeart, Users, CheckCircle, ArrowRight, Calendar, Star, Shield, Phone, Mail, MapPin, ChevronDown, ChevronUp, Umbrella, Home as HomeIcon, TrendingUp, Coins, Landmark, Briefcase, Stethoscope, Eye, Building2, PiggyBank, Scale, Timer, AlertCircle, Thermometer } from 'lucide-react';
 
@@ -772,7 +771,7 @@ const NotFound: React.FC = () => (
 
 const App: React.FC = () => {
   return (
-    <MemoryRouter>
+    <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
@@ -782,7 +781,7 @@ const App: React.FC = () => {
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
-    </MemoryRouter>
+    </BrowserRouter>
   );
 };
 
