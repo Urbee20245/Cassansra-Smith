@@ -470,7 +470,7 @@ const Home: React.FC = () => {
             <div className="md:w-1/2 relative">
               <div className="absolute -top-4 -left-4 w-24 h-24 bg-secondary-100 rounded-full z-0"></div>
               <img 
-                src="/assests/photos/cshsphoto.png" 
+                src="https://raw.githubusercontent.com/Urbee20245/Cassansra-Smith/f2bb7503957b768db3e152c20dbad30a1777a864/assests/photos/cshsphoto.png" 
                 alt="Cassandra Smith" 
                 className="relative z-10 rounded-2xl shadow-xl w-full object-cover h-[550px]"
               />
@@ -541,7 +541,7 @@ const About: React.FC = () => {
         <div className="flex flex-col md:flex-row gap-16 items-start">
           <div className="w-full md:w-2/5 flex-shrink-0">
              <img 
-              src="/assests/photos/cshsphoto.png" 
+              src="https://raw.githubusercontent.com/Urbee20245/Cassansra-Smith/f2bb7503957b768db3e152c20dbad30a1777a864/assests/photos/cshsphoto.png" 
               alt="Cassandra Smith" 
               className="w-full rounded-3xl shadow-2xl object-cover aspect-[3/4]"
             />
