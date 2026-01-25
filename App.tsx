@@ -470,11 +470,7 @@ const Home: React.FC = () => {
             <div className="md:w-1/2 relative">
               <div className="absolute -top-4 -left-4 w-24 h-24 bg-secondary-100 rounded-full z-0"></div>
               <img 
-                src="https://getlyfe.s3.us-east-2.amazonaws.com/wp-content/uploads/2025/11/25164233/Cassandra.jpg" 
-                onError={(e) => {
-                  e.currentTarget.src = "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=800";
-                  e.currentTarget.onerror = null;
-                }}
+                src="/assests/photos/cshsphoto.png" 
                 alt="Cassandra Smith" 
                 className="relative z-10 rounded-2xl shadow-xl w-full object-cover h-[550px]"
               />
@@ -545,11 +541,7 @@ const About: React.FC = () => {
         <div className="flex flex-col md:flex-row gap-16 items-start">
           <div className="w-full md:w-2/5 flex-shrink-0">
              <img 
-              src="https://getlyfe.s3.us-east-2.amazonaws.com/wp-content/uploads/2025/11/25164233/Cassandra.jpg" 
-              onError={(e) => {
-                e.currentTarget.src = "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=800";
-                e.currentTarget.onerror = null;
-              }}
+              src="/assests/photos/cshsphoto.png" 
               alt="Cassandra Smith" 
               className="w-full rounded-3xl shadow-2xl object-cover aspect-[3/4]"
             />
