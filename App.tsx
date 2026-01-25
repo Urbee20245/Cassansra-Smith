@@ -3,6 +3,9 @@ import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import { HeartPulse, FileHeart, Users, CheckCircle, ArrowRight, Calendar, Star, Shield, Phone, Mail, MapPin, ChevronDown, ChevronUp, Umbrella, Home as HomeIcon, TrendingUp, Coins, Landmark, Briefcase, Stethoscope, Eye, Building2, PiggyBank, Scale, Timer, AlertCircle, Thermometer } from 'lucide-react';
 
+// Define the external URL for Cassandra's photo
+const CASSANDRA_PHOTO_URL = "https://raw.githubusercontent.com/Urbee20245/Cassansra-Smith/cc464b13a08099b1e52d8d3d38de2064e1df3257/assets/cshsphoto.png";
+
 // --- Components ---
 
 const AccordionItem = ({ title, children }: { title: string, children?: React.ReactNode }) => {
@@ -470,7 +473,7 @@ const Home: React.FC = () => {
             <div className="md:w-1/2 relative">
               <div className="absolute -top-4 -left-4 w-24 h-24 bg-secondary-100 rounded-full z-0"></div>
               <img 
-                src="/assests/photos/cshsphoto.png" 
+                src={CASSANDRA_PHOTO_URL} 
                 alt="Cassandra Smith" 
                 className="relative z-10 rounded-2xl shadow-xl w-full object-cover h-[550px]"
               />
@@ -541,7 +544,7 @@ const About: React.FC = () => {
         <div className="flex flex-col md:flex-row gap-16 items-start">
           <div className="w-full md:w-2/5 flex-shrink-0">
              <img 
-              src="/assests/photos/cshsphoto.png" 
+              src={CASSANDRA_PHOTO_URL} 
               alt="Cassandra Smith" 
               className="w-full rounded-3xl shadow-2xl object-cover aspect-[3/4]"
             />
