@@ -4,7 +4,7 @@ import Layout from './components/Layout';
 import { HeartPulse, FileHeart, Users, CheckCircle, ArrowRight, Calendar, Star, Shield, Phone, Mail, MapPin, ChevronDown, ChevronUp, Umbrella, Home as HomeIcon, TrendingUp, Coins, Landmark, Briefcase, Stethoscope, Eye, Building2, PiggyBank, Scale, Timer, AlertCircle, Thermometer } from 'lucide-react';
 
 // Define the external URL for Cassandra's photo
-const CASSANDRA_PHOTO_URL = "https://raw.githubusercontent.com/Urbee20245/Cassansra-Smith/cc464b13a08099b1e52d8d3d38de2064e1df3257/assets/cshsphoto.png";
+const CASSANDRA_PHOTO_URL = "https://medicarefor65.s3.amazonaws.com/2026/01/25145552/cshsphoto.png";
 
 // --- Components ---
 
@@ -126,7 +126,7 @@ Lead Qualified via Heatmap Form`;
         </div>
         <h3 className="text-2xl font-bold text-slate-900 mb-2">Request Ready!</h3>
         <p className="text-slate-600 mb-6">Your message has been prepared for Cassandra. Your email app should open automatically.</p>
-        <p className="text-sm text-slate-500 mb-8 italic">"I'll be reviewing your goals and reaching out soon." — Cassandra</p>
+        <p className="text-sm text-slate-500 mb-8 italic">"I'll be reviewing your goals and reaching out soon." — Cassandra"</p>
         <button onClick={() => { setStep('inquiry'); setStatus('idle'); }} className="text-primary-600 font-bold hover:underline">Start New Request</button>
       </div>
     );
