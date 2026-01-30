@@ -1,0 +1,114 @@
+# ============================================================
+# .htaccess for React SPA on Hostinger (Apache / LiteSpeed)
+# Purpose: Route all requests to index.html so client-side
+#          routing works for both users and search engine bots.
+# Location: public_html/ (root of the deployed site)
+# ============================================================
+
+# ----------------------------------------------------------
+# 1. Enable the rewrite engine
+# ----------------------------------------------------------
+RewriteEngine On
+
+# ----------------------------------------------------------
+# 2. Force HTTPS (Hostinger provides free SSL)
+#    Redirects http:// -> https:// with a 301 permanent redirect
+# ----------------------------------------------------------
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# ----------------------------------------------------------
+# 3. Redirect www -> non-www (optional, pick one canonical form)
+#    Remove this block if you prefer www as the canonical domain.
+# ----------------------------------------------------------
+RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
+
+# ----------------------------------------------------------
+# 4. SPA fallback — the critical fix for crawl-ability
+#    If the request is NOT a real file and NOT a real directory,
+#    serve index.html so React Router handles the route.
+#    This ensures /about, /services, /contact all return 200 OK
+#    instead of a 404, which is why Google cannot index the site.
+# ----------------------------------------------------------
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ /index.html [L,QSA]
+
+# ----------------------------------------------------------
+# 5. Correct MIME types for static assets
+#    Ensures JS/CSS/images are served with proper Content-Type
+#    so browsers and crawlers interpret them correctly.
+# ----------------------------------------------------------
+<IfModule mod_mime.c>
+  AddType text/html                .html .htm
+  AddType text/css                 .css
+  AddType application/javascript   .js .mjs
+  AddType application/json         .json .map
+  AddType image/svg+xml            .svg
+  AddType image/webp               .webp
+  AddType image/avif               .avif
+  AddType font/woff2               .woff2
+  AddType font/woff                .woff
+  AddType application/xml          .xml
+  AddType text/plain               .txt
+</IfModule>
+
+# ----------------------------------------------------------
+# 6. Security headers (invisible, does not change appearance)
+# ----------------------------------------------------------
+<IfModule mod_headers.c>
+  # Prevent MIME-type sniffing
+  Header set X-Content-Type-Options "nosniff"
+  # Prevent click-jacking
+  Header set X-Frame-Options "SAMEORIGIN"
+  # Basic XSS protection
+  Header set X-XSS-Protection "1; mode=block"
+  # Referrer policy
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# ----------------------------------------------------------
+# 7. Enable gzip / brotli compression for faster page loads
+#    Faster load = better Core Web Vitals = better SEO ranking
+# ----------------------------------------------------------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html
+  AddOutputFilterByType DEFLATE text/css
+  AddOutputFilterByType DEFLATE application/javascript
+  AddOutputFilterByType DEFLATE application/json
+  AddOutputFilterByType DEFLATE image/svg+xml
+  AddOutputFilterByType DEFLATE application/xml
+  AddOutputFilterByType DEFLATE text/plain
+</IfModule>
+
+# ----------------------------------------------------------
+# 8. Browser caching for static assets
+#    JS/CSS have content-hash filenames from Vite, safe to cache long.
+#    HTML must revalidate so users always get the latest app shell.
+# ----------------------------------------------------------
+<IfModule mod_expires.c>
+  ExpiresActive On
+
+  # HTML — always revalidate
+  ExpiresByType text/html "access plus 0 seconds"
+
+  # CSS & JS — 1 year (Vite hashes filenames on each build)
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+
+  # Images — 1 month
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType image/jpeg "access plus 1 month"
+  ExpiresByType image/webp "access plus 1 month"
+  ExpiresByType image/avif "access plus 1 month"
+  ExpiresByType image/svg+xml "access plus 1 month"
+
+  # Fonts — 1 year
+  ExpiresByType font/woff2 "access plus 1 year"
+  ExpiresByType font/woff "access plus 1 year"
+
+  # JSON & XML — short cache
+  ExpiresByType application/json "access plus 1 hour"
+  ExpiresByType application/xml "access plus 1 hour"
+</IfModule>
