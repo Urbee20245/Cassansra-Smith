@@ -78,10 +78,11 @@ const ContactForm = () => {
     }
   };
 
-  // INSERT: Leads API config (do not expose in HTML)
+  // UPDATE: Leads API config (stored in JS, not HTML)
   const LEADS_CONFIG = {
-    CLIENT_ID: "<a09d75d9-7ec9-47ef-b8a2-719421d7f128>",
-    INGEST_KEY: "<10598d4de420804d5ff9bdc43e7fb2e898eb1cac1bc241784a57f64735ef5e1c>",
+    CLIENT_ID: "<CLIENT_ID>",
+    SUPABASE_ANON_PUBLIC_KEY: "<SUPABASE_ANON_PUBLIC_KEY>",
+    CLIENT_INGEST_KEY: "<CLIENT_INGEST_KEY>",
   };
 
   const LEADS_API_ENDPOINT = "https://nvgumhlewbqynrhlkqhx.supabase.co/functions/v1/ingest-lead";
@@ -97,7 +98,7 @@ const ContactForm = () => {
     
     setStatus('submitting');
 
-    // INSERT: Non-blocking lead ingest call (fire-and-forget)
+    // UPDATE: Non-blocking lead ingest call (fire-and-forget, logs only)
     try {
       if (step === 'final_form') {
         const hasName = !!(formData.firstName && formData.lastName);
@@ -110,16 +111,17 @@ const ContactForm = () => {
             email: formData.email || undefined,
             phone: formData.phone || undefined,
             message: formData.message || undefined,
-            source: "website-strategy-session",
+            source: "secure-strategy-session",
             page_url: window.location.href,
-            referrer: document.referrer,
           };
+          // REMOVED: referrer from payload per API requirements
 
           fetch(LEADS_API_ENDPOINT, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "x-leads-key": LEADS_CONFIG.INGEST_KEY,
+              "apikey": LEADS_CONFIG.SUPABASE_ANON_PUBLIC_KEY,
+              "x-api-key": LEADS_CONFIG.CLIENT_INGEST_KEY,
             },
             body: JSON.stringify(payload),
             keepalive: true,
