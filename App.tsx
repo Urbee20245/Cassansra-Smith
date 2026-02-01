@@ -78,6 +78,14 @@ const ContactForm = () => {
     }
   };
 
+  // INSERT: Leads API config (do not expose in HTML)
+  const LEADS_CONFIG = {
+    CLIENT_ID: "<CLIENT_ID>",
+    INGEST_KEY: "<INGEST_KEY>",
+  };
+
+  const LEADS_API_ENDPOINT = "https://nvgumhlewbqynrhlkqhx.supabase.co/functions/v1/ingest-lead";
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -88,6 +96,47 @@ const ContactForm = () => {
     }
     
     setStatus('submitting');
+
+    // INSERT: Non-blocking lead ingest call (fire-and-forget)
+    try {
+      if (step === 'final_form') {
+        const hasName = !!(formData.firstName && formData.lastName);
+        const hasContact = !!(formData.email || formData.phone);
+
+        if (hasName && hasContact) {
+          const payload = {
+            client_id: LEADS_CONFIG.CLIENT_ID,
+            name: `${formData.firstName} ${formData.lastName}`.trim(),
+            email: formData.email || undefined,
+            phone: formData.phone || undefined,
+            message: formData.message || undefined,
+            source: "website-strategy-session",
+            page_url: window.location.href,
+            referrer: document.referrer,
+          };
+
+          fetch(LEADS_API_ENDPOINT, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-leads-key": LEADS_CONFIG.INGEST_KEY,
+            },
+            body: JSON.stringify(payload),
+            keepalive: true,
+          })
+          .then((res) => {
+            if (res.status !== 201) {
+              console.log("Lead ingest non-201 status:", res.status);
+            }
+          })
+          .catch((err) => {
+            console.log("Lead ingest error:", err);
+          });
+        }
+      }
+    } catch (err) {
+      console.log("Lead ingest exception:", err);
+    }
 
     const intentLevel = isHighIntent ? '🔥 HIGH INTENT (URGENT)' : '❄️ PLANNING / FUTURE';
     const subject = `${intentLevel}: ${formData.topic} Inquiry - ${formData.firstName} ${formData.lastName}`;
@@ -555,7 +604,7 @@ const About: React.FC = () => {
               I don't just sell insurance; I architect financial security.
             </p>
             <p>
-              With over <strong>10 years of experience in the financial services industry</strong>, I’ve seen firsthand how the right insurance product can change a family’s trajectory. I started my agency because I wanted to offer more than just "off-the-shelf" plans. I wanted to offer strategies.
+              With over <strong>10 years of experience in the financial services industry</strong>, I've seen firsthand how the right insurance product can change a family's trajectory. I started my agency because I wanted to offer more than just "off-the-shelf" plans. I wanted to offer strategies.
             </p>
             <h3>The Independent Advantage</h3>
             <p>
