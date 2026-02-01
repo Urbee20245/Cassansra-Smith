@@ -80,8 +80,8 @@ const ContactForm = () => {
 
   // INSERT: Leads API config (do not expose in HTML)
   const LEADS_CONFIG = {
-    CLIENT_ID: "<CLIENT_ID>",
-    INGEST_KEY: "<INGEST_KEY>",
+    CLIENT_ID: "<a09d75d9-7ec9-47ef-b8a2-719421d7f128>",
+    INGEST_KEY: "<10598d4de420804d5ff9bdc43e7fb2e898eb1cac1bc241784a57f64735ef5e1c>",
   };
 
   const LEADS_API_ENDPOINT = "https://nvgumhlewbqynrhlkqhx.supabase.co/functions/v1/ingest-lead";
