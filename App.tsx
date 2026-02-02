@@ -119,20 +119,25 @@ const ContactForm = () => {
             keepalive: true,
           })
           .then((res) => {
-            if (res.status !== 201) {
+            if (res.status === 201) {
+              setStatus('success');
+            } else {
               console.log("Submit endpoint non-201:", res.status);
+              setStatus('idle');
             }
           })
           .catch((err) => {
             console.log("Submit endpoint error:", err);
+            setStatus('idle');
           });
+
+          return; // prevent immediate success state; wait for response above
         }
       }
     } catch (err) {
       console.log("Submit hook exception:", err);
+      setStatus('idle');
     }
-
-    setStatus('success');
   };
 
   const stepsInfo = {
@@ -152,7 +157,6 @@ const ContactForm = () => {
         <h3 className="text-2xl font-bold text-slate-900 mb-2">Request Ready!</h3>
         <p className="text-slate-600 mb-6">Your message has been prepared for Cassandra. Your email app should open automatically.</p>
         <p className="text-sm text-slate-500 mb-8 italic">"I'll be reviewing your goals and reaching out soon." — Cassandra"</p>
-        <button onClick={() => { setStep('inquiry'); setStatus('idle'); }} className="text-primary-600 font-bold hover:underline">Start New Request</button>
       </div>
     );
   }
