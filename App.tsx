@@ -84,7 +84,6 @@ const ContactForm = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Basic check, though the input is required
     if (!formData.permissionGranted) {
         alert("Please check the permission box to proceed.");
         return;
@@ -92,47 +91,51 @@ const ContactForm = () => {
     
     setStatus('submitting');
 
-    // SUBMIT: Fire-and-forget POST to server endpoint (non-blocking, logs only)
     try {
-      if (step === 'final_form') {
-        const hasName = !!(formData.firstName && formData.lastName);
-        const hasContact = !!(formData.email || formData.phone);
+      // Support both submit flows
+      const hasName = !!(formData.firstName && formData.lastName);
+      const hasContact = !!(formData.email || formData.phone);
 
-        if (hasName && hasContact) {
-          const payload = {
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            email: formData.email || '',
-            phone: formData.phone || '',
-            topic: formData.topic || '',
-            timeline: formData.timeline || '',
-            priorityScore: formData.priorityScore ?? null,
-            futureDate: formData.futureDate || '',
-            message: formData.message || '',
-            page_url: window.location.href,
-          };
+      if (hasName && hasContact) {
+        const source = step === 'final_form' ? 'secure-strategy-session' : 'future-consultation';
 
-          fetch(EMAIL_ENDPOINT, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-            keepalive: true,
-          })
-          .then((res) => {
-            if (res.status === 201) {
-              setStatus('success');
-            } else {
-              console.log("Submit endpoint non-201:", res.status);
-              setStatus('idle');
-            }
-          })
-          .catch((err) => {
-            console.log("Submit endpoint error:", err);
+        const payload = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email || '',
+          phone: formData.phone || '',
+          topic: formData.topic || '',
+          timeline: formData.timeline || '',
+          priorityScore: formData.priorityScore ?? null,
+          futureDate: formData.futureDate || '',
+          message: formData.message || '',
+          page_url: window.location.href,
+          source,
+        };
+
+        fetch(EMAIL_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          keepalive: true,
+        })
+        .then((res) => {
+          if (res.status === 201) {
+            setStatus('success');
+          } else {
+            console.log("Submit endpoint non-201:", res.status);
             setStatus('idle');
-          });
+          }
+        })
+        .catch((err) => {
+          console.log("Submit endpoint error:", err);
+          setStatus('idle');
+        });
 
-          return; // prevent immediate success state; wait for response above
-        }
+        return; // wait for server response
+      } else {
+        console.log("Validation failed: name and either email or phone required.");
+        setStatus('idle');
       }
     } catch (err) {
       console.log("Submit hook exception:", err);
