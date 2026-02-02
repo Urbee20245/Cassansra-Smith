@@ -78,7 +78,7 @@ const ContactForm = () => {
     }
   };
 
-  // INSERT: Hostinger email/lead endpoint (no secrets in HTML/JS)
+  // INSERT: Server endpoint path (no secrets in client)
   const EMAIL_ENDPOINT = "/api/submit-lead.php";
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -92,14 +92,14 @@ const ContactForm = () => {
     
     setStatus('submitting');
 
-    // UPDATE: Fire-and-forget server POST to send email and forward lead (non-blocking, logs only)
+    // SUBMIT: Fire-and-forget POST to server endpoint (non-blocking, logs only)
     try {
       if (step === 'final_form') {
         const hasName = !!(formData.firstName && formData.lastName);
         const hasContact = !!(formData.email || formData.phone);
 
         if (hasName && hasContact) {
-          const emailPayload = {
+          const payload = {
             firstName: formData.firstName,
             lastName: formData.lastName,
             email: formData.email || '',
@@ -115,16 +115,16 @@ const ContactForm = () => {
           fetch(EMAIL_ENDPOINT, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(emailPayload),
+            body: JSON.stringify(payload),
             keepalive: true,
           })
           .then((res) => {
             if (res.status !== 201) {
-              console.log("Email/Lead endpoint non-201:", res.status);
+              console.log("Submit endpoint non-201:", res.status);
             }
           })
           .catch((err) => {
-            console.log("Email/Lead endpoint error:", err);
+            console.log("Submit endpoint error:", err);
           });
         }
       }
