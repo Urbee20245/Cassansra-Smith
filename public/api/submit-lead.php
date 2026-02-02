@@ -62,29 +62,90 @@ $lines[] = "--";
 $lines[] = "Lead Qualified via Heatmap Form";
 $body = implode("\n", $lines);
 
-// Prepare email headers
-$from = getenv('SMTP_USER') ?: 'cassandra@gapbridgecs.com';
-$to   = 'csmithgapbridge@gmail.com';
-$headers = "From: {$from}\r\n";
-$headers .= "Reply-To: " . (($email ?: $from)) . "\r\n";
-$headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+// SMTP sender (Hostinger SMTP over SSL:465)
+function smtp_send($to, $subject, $body, $fromEmail, $fromName = 'Cassandra Smith', $replyTo = null) {
+  $host = 'ssl://smtp.hostinger.com';
+  $port = 465;
+  $username = getenv('SMTP_USER');
+  $password = getenv('SMTP_PASS');
 
-// Attempt to send email via PHP mail()
-// Note: Hostinger's MTA will deliver using your domain; ensure SPF/DKIM set in hPanel for best deliverability.
-$emailOk = false;
-try {
-  // Use -f to set envelope sender (Return-Path) for better deliverability
-  $sent = @mail($to, $subject, $body, $headers, "-f{$from}");
-  if ($sent) {
-    $emailOk = true;
-  } else {
-    error_log('mail() returned false for submit-lead');
+  if (!$username || !$password) {
+    error_log('SMTP credentials missing');
+    return false;
   }
-} catch (\Throwable $t) {
-  error_log('Email send exception: ' . $t->getMessage());
+
+  $fp = @stream_socket_client("$host:$port", $errno, $errstr, 10);
+  if (!$fp) {
+    error_log("SMTP connect error: $errno $errstr");
+    return false;
+  }
+  $read = function() use ($fp) { return fgets($fp, 515); };
+  $write = function($cmd) use ($fp) { fwrite($fp, $cmd . "\r\n"); };
+
+  $resp = $read(); // 220
+  if (strpos($resp, '220') !== 0) { fclose($fp); return false; }
+
+  $ehloDomain = explode('@', $fromEmail)[1] ?? 'localhost';
+  $write("EHLO $ehloDomain");
+  $resp = $read(); if (strpos($resp, '250') !== 0) { fclose($fp); return false; }
+  // read remaining EHLO lines
+  stream_get_line($fp, 515, "\r\n");
+
+  $write("AUTH LOGIN");
+  $resp = $read(); if (strpos($resp, '334') !== 0) { fclose($fp); return false; }
+
+  $write(base64_encode($username));
+  $resp = $read(); if (strpos($resp, '334') !== 0) { fclose($fp); return false; }
+
+  $write(base64_encode($password));
+  $resp = $read(); if (strpos($resp, '235') !== 0) { fclose($fp); return false; }
+
+  $write("MAIL FROM:<$fromEmail>");
+  $resp = $read(); if (strpos($resp, '250') !== 0) { fclose($fp); return false; }
+
+  $write("RCPT TO:<$to>");
+  $resp = $read(); if (strpos($resp, '250') !== 0 && strpos($resp, '251') !== 0) { fclose($fp); return false; }
+
+  $write("DATA");
+  $resp = $read(); if (strpos($resp, '354') !== 0) { fclose($fp); return false; }
+
+  // Build headers with CRLF
+  $headers = [];
+  $headers[] = "From: $fromName <$fromEmail>";
+  if ($replyTo) $headers[] = "Reply-To: $replyTo";
+  $headers[] = "MIME-Version: 1.0";
+  $headers[] = "Content-Type: text/plain; charset=UTF-8";
+  $headers[] = "Content-Transfer-Encoding: 8bit";
+
+  $message  = "Subject: $subject\r\n";
+  $message .= implode("\r\n", $headers) . "\r\n";
+  $message .= "\r\n" . preg_replace("/\r?\n/", "\r\n", $body) . "\r\n";
+
+  // End DATA with a single dot line
+  $write($message . ".");
+  $resp = $read(); if (strpos($resp, '250') !== 0) { fclose($fp); return false; }
+
+  $write("QUIT");
+  fclose($fp);
+  return true;
 }
 
-// NEW: Send confirmation/thank-you email to the user (if email present)
+// Prepare sender info
+$from = getenv('SMTP_USER') ?: 'cassandra@gapbridgecs.com';
+$to   = 'csmithgapbridge@gmail.com';
+$replyTo = ($email ?: $from);
+
+// Send email to Cassandra via SMTP
+$emailOk = false;
+try {
+  $emailOk = smtp_send($to, $subject, $body, $from, 'Cassandra Smith', $replyTo);
+  if (!$emailOk) { error_log('SMTP send to Cassandra failed'); }
+} catch (\Throwable $t) {
+  error_log('SMTP send exception: ' . $t->getMessage());
+  $emailOk = false;
+}
+
+// NEW: Send confirmation/thank-you email to the user via SMTP (if email present)
 $userEmailOk = false;
 if ($email) {
   $confirmSubject = ($source === 'future-consultation')
@@ -120,23 +181,16 @@ if ($email) {
 
   $confirmBody = implode("\n", $confirmLines);
 
-  $confirmHeaders = "From: {$from}\r\n";
-  $confirmHeaders .= "Reply-To: {$from}\r\n";
-  $confirmHeaders .= "Content-Type: text/plain; charset=UTF-8\r\n";
-
   try {
-    $userSent = @mail($email, $confirmSubject, $confirmBody, $confirmHeaders, "-f{$from}");
-    if ($userSent) {
-      $userEmailOk = true;
-    } else {
-      error_log('mail() to user returned false for submit-lead');
-    }
+    $userEmailOk = smtp_send($email, $confirmSubject, $confirmBody, $from, 'Cassandra Smith', $from);
+    if (!$userEmailOk) { error_log('SMTP send confirmation to user failed'); }
   } catch (\Throwable $t) {
-    error_log('User confirmation send exception: ' . $t->getMessage());
+    error_log('User confirmation SMTP exception: ' . $t->getMessage());
+    $userEmailOk = false;
   }
 }
 
-// Forward lead to Custom Websites Plus Leads API (silent) ONLY for strategy session
+// Forward lead to Custom Websites Plus Leads API ONLY for strategy session
 $leadOk = false;
 if ($source === 'secure-strategy-session') {
   try {
