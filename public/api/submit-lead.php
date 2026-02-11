@@ -137,10 +137,26 @@ $replyTo = ($email ?: $from);
 
 // Send email to Cassandra via SMTP
 $emailOk = false;
+$emailError = null;
 try {
-  $emailOk = smtp_send($to, $subject, $body, $from, 'Cassandra Smith', $replyTo);
-  if (!$emailOk) { error_log('SMTP send to Cassandra failed'); }
+  // Validate SMTP credentials first
+  $smtpUser = getenv('SMTP_USER');
+  $smtpPass = getenv('SMTP_PASS');
+
+  if (!$smtpUser || !$smtpPass) {
+    $emailError = 'Missing SMTP credentials';
+    error_log('SMTP error: Missing SMTP_USER or SMTP_PASS environment variables');
+  } else {
+    $emailOk = smtp_send($to, $subject, $body, $from, 'Cassandra Smith', $replyTo);
+    if (!$emailOk) {
+      $emailError = 'SMTP send failed';
+      error_log('SMTP send to Cassandra failed');
+    } else {
+      error_log('Email sent successfully to Cassandra: ' . $to);
+    }
+  }
 } catch (\Throwable $t) {
+  $emailError = 'Exception: ' . $t->getMessage();
   error_log('SMTP send exception: ' . $t->getMessage());
   $emailOk = false;
 }
@@ -192,45 +208,86 @@ if ($email) {
 
 // Forward lead to Custom Websites Plus Leads API ONLY for strategy session
 $leadOk = false;
+$leadError = null;
 if ($source === 'secure-strategy-session') {
   try {
     $leadsEndpoint = 'https://nvgumhlewbqynrhlkqhx.supabase.co/functions/v1/ingest-lead';
-    $payload = [
-      'client_id' => getenv('LEADS_CLIENT_ID') ?: null,
-      'name'      => trim("{$firstName} {$lastName}"),
-      'email'     => $email ?: null,
-      'phone'     => $phone ?: null,
-      'message'   => $message ?: null,
-      'source'    => 'secure-strategy-session',
-      'page_url'  => $pageUrl ?: null,
-    ];
 
-    $headersCurl = [
-      'Content-Type: application/json',
-      'apikey: ' . (getenv('LEADS_APIKEY') ?: ''),
-      'x-api-key: ' . (getenv('LEADS_INGEST_KEY') ?: ''),
-    ];
+    // Validate required credentials
+    $clientId = getenv('LEADS_CLIENT_ID');
+    $apiKey = getenv('LEADS_APIKEY');
+    $ingestKey = getenv('LEADS_INGEST_KEY');
 
-    $ch = curl_init($leadsEndpoint);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headersCurl);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-    curl_setopt($ch, CURLOPT_TIMEOUT, 4);
-    $response = curl_exec($ch);
-    $status   = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($status === 201) {
-      $leadOk = true;
+    if (!$clientId || !$apiKey || !$ingestKey) {
+      $leadError = 'Missing lead API credentials';
+      error_log('Lead forwarding error: Missing required credentials (LEADS_CLIENT_ID, LEADS_APIKEY, or LEADS_INGEST_KEY)');
     } else {
-      error_log('Lead ingest status: ' . $status . ' resp: ' . $response);
+      $payload = [
+        'client_id' => $clientId,
+        'name'      => trim("{$firstName} {$lastName}"),
+        'email'     => $email ?: null,
+        'phone'     => $phone ?: null,
+        'message'   => $message ?: null,
+        'source'    => 'secure-strategy-session',
+        'page_url'  => $pageUrl ?: null,
+      ];
+
+      $headersCurl = [
+        'Content-Type: application/json',
+        'apikey: ' . $apiKey,
+        'x-api-key: ' . $ingestKey,
+      ];
+
+      $ch = curl_init($leadsEndpoint);
+      curl_setopt($ch, CURLOPT_POST, true);
+      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+      curl_setopt($ch, CURLOPT_HTTPHEADER, $headersCurl);
+      curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+      curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+      $response = curl_exec($ch);
+      $curlError = curl_error($ch);
+      $status   = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+      curl_close($ch);
+
+      if ($curlError) {
+        $leadError = 'cURL error: ' . $curlError;
+        error_log('Lead ingest cURL error: ' . $curlError);
+      } elseif ($status === 201 || $status === 200) {
+        $leadOk = true;
+        error_log('Lead forwarded successfully to Custom Websites Plus. Status: ' . $status);
+      } else {
+        $leadError = 'API returned status ' . $status;
+        error_log('Lead ingest status: ' . $status . ' resp: ' . $response);
+      }
     }
   } catch (\Throwable $t) {
+    $leadError = 'Exception: ' . $t->getMessage();
     error_log('Lead ingest exception: ' . $t->getMessage());
   }
 }
 
-// Return 201 if email to Cassandra sent; otherwise 200 (client stays silent)
-http_response_code($emailOk ? 201 : 200);
-echo json_encode(['ok' => $emailOk, 'lead_ok' => $leadOk, 'user_email_ok' => $userEmailOk]);
+// Return 201 if email to Cassandra sent AND (no lead forwarding required OR lead forwarded successfully)
+// For secure-strategy-session, both email and lead forwarding must succeed
+$overallSuccess = $emailOk && ($source !== 'secure-strategy-session' || $leadOk);
+
+http_response_code($overallSuccess ? 201 : 200);
+
+$response = [
+  'ok' => $overallSuccess,
+  'email_ok' => $emailOk,
+  'lead_ok' => $leadOk,
+  'user_email_ok' => $userEmailOk,
+  'source' => $source
+];
+
+if (!$overallSuccess) {
+  $errors = [];
+  if (!$emailOk) $errors[] = 'Email to Cassandra failed';
+  if ($source === 'secure-strategy-session' && !$leadOk) {
+    $errors[] = 'Lead forwarding failed: ' . ($leadError ?? 'Unknown error');
+  }
+  $response['errors'] = $errors;
+  error_log('Submission not fully successful: ' . implode(', ', $errors));
+}
+
+echo json_encode($response);

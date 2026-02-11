@@ -81,14 +81,14 @@ const ContactForm = () => {
   // INSERT: Server endpoint path (no secrets in client)
   const EMAIL_ENDPOINT = "/api/submit-lead.php";
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.permissionGranted) {
         alert("Please check the permission box to proceed.");
         return;
     }
-    
+
     setStatus('submitting');
 
     try {
@@ -113,32 +113,34 @@ const ContactForm = () => {
           source,
         };
 
-        fetch(EMAIL_ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-          keepalive: true,
-        })
-        .then((res) => {
+        try {
+          const res = await fetch(EMAIL_ENDPOINT, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
           if (res.status === 201) {
             setStatus('success');
           } else {
-            console.log("Submit endpoint non-201:", res.status);
+            const errorText = await res.text().catch(() => 'Unknown error');
+            console.error("Submit endpoint non-201:", res.status, errorText);
+            alert(`Unable to submit your request. Status: ${res.status}. Please try calling us directly at 1 (706) 705-7603.`);
             setStatus('idle');
           }
-        })
-        .catch((err) => {
-          console.log("Submit endpoint error:", err);
+        } catch (err) {
+          console.error("Submit endpoint error:", err);
+          alert("Network error: Unable to submit your request. Please check your connection or call us directly at 1 (706) 705-7603.");
           setStatus('idle');
-        });
-
-        return; // wait for server response
+        }
       } else {
         console.log("Validation failed: name and either email or phone required.");
+        alert("Please provide your name and either an email or phone number.");
         setStatus('idle');
       }
     } catch (err) {
-      console.log("Submit hook exception:", err);
+      console.error("Submit hook exception:", err);
+      alert("An unexpected error occurred. Please try again or call us directly at 1 (706) 705-7603.");
       setStatus('idle');
     }
   };
@@ -290,8 +292,21 @@ const ContactForm = () => {
             </label>
           </div>
 
-          <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-xl hover:bg-slate-800 transition-all flex justify-center items-center gap-2">
-            Secure My Strategy Session <ArrowRight size={18} />
+          <button
+            type="submit"
+            disabled={status === 'submitting'}
+            className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-xl hover:bg-slate-800 transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {status === 'submitting' ? (
+              <>
+                <Timer className="w-5 h-5 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              <>
+                Secure My Strategy Session <ArrowRight size={18} />
+              </>
+            )}
           </button>
           <button type="button" onClick={() => setStep('priority')} className="text-slate-400 text-sm font-bold hover:text-slate-600 transition-colors block mx-auto pt-2">← Back</button>
         </form>
@@ -341,8 +356,21 @@ const ContactForm = () => {
             </label>
           </div>
 
-          <button type="submit" className="w-full bg-primary-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-primary-700 transition-all flex justify-center items-center gap-2">
-            Schedule Future Consultation <ArrowRight size={18} />
+          <button
+            type="submit"
+            disabled={status === 'submitting'}
+            className="w-full bg-primary-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-primary-700 transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {status === 'submitting' ? (
+              <>
+                <Timer className="w-5 h-5 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              <>
+                Schedule Future Consultation <ArrowRight size={18} />
+              </>
+            )}
           </button>
           <button type="button" onClick={() => setStep('priority')} className="text-slate-400 text-sm font-bold hover:text-slate-600 transition-colors block mx-auto pt-2">← Back</button>
         </form>
