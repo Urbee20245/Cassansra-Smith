@@ -1,10 +1,23 @@
-import React, { useState, useMemo } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
-import { HeartPulse, FileHeart, Users, CheckCircle, ArrowRight, Calendar, Star, Shield, Phone, Mail, MapPin, ChevronDown, ChevronUp, Umbrella, Home as HomeIcon, TrendingUp, Coins, Landmark, Briefcase, Stethoscope, Eye, Building2, PiggyBank, Scale, Timer, AlertCircle, Thermometer } from 'lucide-react';
+import { HeartPulse, FileHeart, Users, CheckCircle, ArrowRight, Calendar, Star, Shield, Phone, Mail, MapPin, ChevronDown, ChevronUp, Umbrella, Home as HomeIcon, TrendingUp, Coins, Landmark, Briefcase, Stethoscope, Eye, Building2, PiggyBank, Scale, Timer, AlertCircle, Thermometer, X, ExternalLink, Clock, Send, UserPlus } from 'lucide-react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import AdminLogin from './components/admin/AdminLogin';
+import AdminDashboard from './components/admin/AdminDashboard';
+import { Event, AdminLink, AdminSettings, EventRegistration, LS_KEYS } from './types';
 
 // Define the external URL for Cassandra's photo
 const CASSANDRA_PHOTO_URL = "https://medicarefor65.s3.amazonaws.com/2026/01/25145552/cshsphoto.png";
+
+// --- localStorage helpers (shared with admin) ---
+const loadLS = <T,>(key: string, fallback: T): T => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch { return fallback; }
+};
+const saveLS = <T,>(key: string, value: T) => localStorage.setItem(key, JSON.stringify(value));
 
 // --- Components ---
 
@@ -25,6 +38,332 @@ const AccordionItem = ({ title, children }: { title: string, children?: React.Re
         </div>
       )}
     </div>
+  );
+};
+
+// --- Countdown Timer ---
+
+const CountdownTimer: React.FC<{ eventDate: string }> = ({ eventDate }) => {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, past: false });
+
+  useEffect(() => {
+    const calculate = () => {
+      const diff = new Date(eventDate).getTime() - Date.now();
+      if (diff <= 0) { setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, past: true }); return; }
+      setTimeLeft({
+        days: Math.floor(diff / 86400000),
+        hours: Math.floor((diff % 86400000) / 3600000),
+        minutes: Math.floor((diff % 3600000) / 60000),
+        seconds: Math.floor((diff % 60000) / 1000),
+        past: false,
+      });
+    };
+    calculate();
+    const id = setInterval(calculate, 1000);
+    return () => clearInterval(id);
+  }, [eventDate]);
+
+  if (timeLeft.past) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-sm text-slate-400 bg-slate-100 rounded-lg px-3 py-1.5 font-medium">
+        <Clock size={14} /> Event concluded
+      </span>
+    );
+  }
+
+  const units = [
+    { label: 'Days', val: timeLeft.days },
+    { label: 'Hrs',  val: timeLeft.hours },
+    { label: 'Min',  val: timeLeft.minutes },
+    { label: 'Sec',  val: timeLeft.seconds },
+  ];
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {units.map((u, i) => (
+        <React.Fragment key={u.label}>
+          <div className="flex flex-col items-center bg-slate-900 text-white rounded-lg px-2.5 py-2 min-w-[50px]">
+            <span className="text-xl font-black tabular-nums leading-none">{String(u.val).padStart(2, '0')}</span>
+            <span className="text-[9px] uppercase tracking-wider text-slate-400 mt-1">{u.label}</span>
+          </div>
+          {i < 3 && <span className="text-slate-500 font-bold text-lg">:</span>}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+};
+
+// --- Event Registration Modal ---
+
+const EventRegistrationModal: React.FC<{
+  event: Event;
+  onClose: () => void;
+  onSubmitted: (reg: EventRegistration) => void;
+}> = ({ event, onClose, onSubmitted }) => {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [message, setMessage] = useState('');
+  const [consent, setConsent] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const validate = (): boolean => {
+    const errs: string[] = [];
+    if (!firstName.trim()) errs.push('First name is required.');
+    if (!lastName.trim()) errs.push('Last name is required.');
+    if (!email.trim() && !phone.trim()) errs.push('Email or phone number is required.');
+    if (!consent) errs.push('Please accept the consent checkbox to continue.');
+    setErrors(errs);
+    return errs.length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
+    setLoading(true);
+
+    const reg: EventRegistration = {
+      id: Math.random().toString(36).slice(2) + Date.now().toString(36),
+      eventId: event.id,
+      eventTitle: event.title,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      message: message.trim(),
+      registeredAt: new Date().toISOString(),
+    };
+
+    // Non-blocking: send to backend for email notification
+    try {
+      await fetch('/api/submit-lead.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: reg.firstName, lastName: reg.lastName,
+          email: reg.email, phone: reg.phone,
+          topic: 'Event Registration',
+          message: `Registering for event: ${event.title}${message ? `\n\nNote: ${message}` : ''}`,
+          source: 'event-registration',
+          pageUrl: window.location.href,
+        }),
+      });
+    } catch { /* still record locally */ }
+
+    setLoading(false);
+    setSuccess(true);
+    onSubmitted(reg);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-y-auto py-8 px-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-fade-in my-auto">
+        {/* Header */}
+        <div className="bg-slate-900 px-6 py-5 rounded-t-2xl flex items-start justify-between">
+          <div>
+            <p className="text-secondary-400 text-xs font-bold uppercase tracking-wider mb-1">Register for Event</p>
+            <h2 className="text-white font-bold text-lg leading-tight">{event.title}</h2>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition ml-4 shrink-0 mt-1"><X size={20} /></button>
+        </div>
+
+        {success ? (
+          <div className="px-8 py-12 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle size={32} className="text-green-600" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">You're Registered!</h3>
+            <p className="text-slate-500 text-sm mb-6">
+              Thank you, <strong>{firstName}</strong>! Your registration for <strong>{event.title}</strong> has been received. We'll be in touch soon.
+            </p>
+            <button onClick={onClose} className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-slate-800 transition">Close</button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="px-6 py-6 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">First Name *</label>
+                <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 transition" placeholder="Jane" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Last Name *</label>
+                <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 transition" placeholder="Smith" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Email Address</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 transition" placeholder="jane@example.com" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Phone Number</label>
+              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 transition" placeholder="(555) 000-0000" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Message (optional)</label>
+              <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={2}
+                placeholder="Any questions or special requirements?"
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 transition resize-none" />
+            </div>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-slate-300 text-primary-600" />
+              <span className="text-xs text-slate-500 leading-relaxed">
+                I consent to being contacted via email and/or phone regarding this event and related services. My information will not be shared with third parties.
+              </span>
+            </label>
+            {errors.length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 space-y-1">
+                {errors.map((err) => (
+                  <p key={err} className="text-red-700 text-xs flex items-center gap-1.5">
+                    <AlertCircle size={12} className="shrink-0" /> {err}
+                  </p>
+                ))}
+              </div>
+            )}
+            <button type="submit" disabled={loading}
+              className="w-full bg-secondary-500 hover:bg-secondary-600 disabled:bg-slate-300 text-slate-900 py-3.5 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 shadow-sm">
+              {loading
+                ? <><span className="w-4 h-4 border-2 border-slate-400 border-t-slate-800 rounded-full animate-spin"></span> Submitting…</>
+                : <><Send size={15} /> Submit Registration</>}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// --- Event Card ---
+
+const EventCard: React.FC<{ event: Event; onRegister: () => void }> = ({ event, onRegister }) => (
+  <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col">
+    {event.imageUrl ? (
+      <div className="h-52 overflow-hidden shrink-0">
+        <img src={event.imageUrl} alt={event.title}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          onError={(e) => { (e.target as HTMLImageElement).parentElement!.className = 'h-52 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center shrink-0'; }} />
+      </div>
+    ) : (
+      <div className="h-52 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center shrink-0">
+        <Calendar size={44} className="text-secondary-400" />
+      </div>
+    )}
+    <div className="p-6 flex flex-col flex-1">
+      <p className="text-secondary-600 font-bold text-xs uppercase tracking-wider mb-2">{event.heading}</p>
+      <h3 className="text-xl font-bold text-slate-900 mb-3 leading-tight">{event.title}</h3>
+      <p className="text-slate-600 text-sm mb-4 leading-relaxed line-clamp-3 flex-1">{event.description}</p>
+      {event.location && (
+        <div className="flex items-center gap-1.5 text-slate-400 text-xs mb-4">
+          <MapPin size={13} /> {event.location}
+        </div>
+      )}
+      <div className="mb-5">
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2.5">Starts in</p>
+        <CountdownTimer eventDate={event.eventDate} />
+      </div>
+      <button onClick={onRegister}
+        className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 mt-auto">
+        <UserPlus size={16} /> Register for This Event
+      </button>
+    </div>
+  </div>
+);
+
+// --- Events Section (reads from localStorage, shown on Home) ---
+
+const EventsSection: React.FC = () => {
+  const [settings] = useState<AdminSettings>(() =>
+    loadLS<AdminSettings>(LS_KEYS.SETTINGS, { eventsEnabled: false, linksEnabled: false })
+  );
+  const [events] = useState<Event[]>(() => loadLS<Event[]>(LS_KEYS.EVENTS, []));
+  const [registrations, setRegistrations] = useState<EventRegistration[]>(() =>
+    loadLS<EventRegistration[]>(LS_KEYS.REGISTRATIONS, [])
+  );
+  const [registerEvent, setRegisterEvent] = useState<Event | null>(null);
+
+  if (!settings.eventsEnabled || events.length === 0) return null;
+
+  const handleRegistered = (reg: EventRegistration) => {
+    const updated = [reg, ...registrations];
+    setRegistrations(updated);
+    saveLS(LS_KEYS.REGISTRATIONS, updated);
+  };
+
+  return (
+    <section className="py-24 bg-gradient-to-b from-slate-50 to-white border-t border-slate-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <span className="text-secondary-600 font-bold tracking-widest text-sm uppercase mb-4 block">Stay Connected</span>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900">Upcoming Events</h2>
+          <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
+            Join our workshops and seminars designed to help you take control of your financial future. Space is limited — register today.
+          </p>
+        </div>
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-8">
+          {events.map((ev) => (
+            <EventCard key={ev.id} event={ev} onRegister={() => setRegisterEvent(ev)} />
+          ))}
+        </div>
+      </div>
+      {registerEvent && (
+        <EventRegistrationModal
+          event={registerEvent}
+          onClose={() => setRegisterEvent(null)}
+          onSubmitted={(reg) => { handleRegistered(reg); }}
+        />
+      )}
+    </section>
+  );
+};
+
+// --- Links Section (reads from localStorage, shown on Home above footer) ---
+
+const LinksSection: React.FC = () => {
+  const [settings] = useState<AdminSettings>(() =>
+    loadLS<AdminSettings>(LS_KEYS.SETTINGS, { eventsEnabled: false, linksEnabled: false })
+  );
+  const [links] = useState<AdminLink[]>(() => loadLS<AdminLink[]>(LS_KEYS.LINKS, []));
+
+  if (!settings.linksEnabled || links.length === 0) return null;
+
+  return (
+    <section className="py-20 bg-white border-t border-slate-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <span className="text-secondary-600 font-bold tracking-widest text-sm uppercase mb-4 block">Resources</span>
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Helpful Links & Resources</h2>
+          <p className="mt-3 text-slate-500 max-w-xl mx-auto text-base">
+            Trusted resources curated to help you make informed decisions about your health and financial future.
+          </p>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {links.map((link) => (
+            <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
+              className="group flex items-start gap-3 bg-slate-50 hover:bg-primary-50 border border-slate-200 hover:border-primary-300 rounded-2xl p-5 transition-all hover:shadow-md">
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shrink-0 shadow-sm group-hover:shadow-md transition border border-slate-100">
+                <ExternalLink size={16} className="text-primary-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-slate-900 text-sm group-hover:text-primary-700 transition truncate flex items-center gap-1">
+                  {link.label}
+                  <ExternalLink size={10} className="text-slate-400 shrink-0 opacity-0 group-hover:opacity-100 transition" />
+                </p>
+                {link.description && (
+                  <p className="text-slate-500 text-xs mt-1 leading-relaxed line-clamp-2">{link.description}</p>
+                )}
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 };
 
@@ -568,6 +907,9 @@ const Home: React.FC = () => {
         </div>
       </section>
       
+      {/* Upcoming Events (admin-toggled) */}
+      <EventsSection />
+
       {/* CTA */}
       <section className="py-24 bg-slate-900 text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
@@ -586,6 +928,9 @@ const Home: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Resource Links (admin-toggled, above footer) */}
+      <LinksSection />
     </div>
   );
 };
@@ -874,18 +1219,32 @@ const NotFound: React.FC = () => (
   </div>
 );
 
+// Protected route wrapper — redirects to login if not authenticated
+const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <>{children}</> : <Navigate to="/admin/login" replace />;
+};
+
 const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Home />} />
-          <Route path="about" element={<About />} />
-          <Route path="services" element={<Services />} />
-          <Route path="contact" element={<Contact />} />
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          {/* Public site routes */}
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Home />} />
+            <Route path="about" element={<About />} />
+            <Route path="services" element={<Services />} />
+            <Route path="contact" element={<Contact />} />
+            <Route path="*" element={<NotFound />} />
+          </Route>
+
+          {/* Admin routes (no Layout wrapper) */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<RequireAuth><AdminDashboard /></RequireAuth>} />
+          <Route path="/admin/*" element={<RequireAuth><AdminDashboard /></RequireAuth>} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 };
