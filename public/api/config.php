@@ -8,7 +8,7 @@ function env(string $key, string $default = ''): string {
     return ($v !== false && $v !== '') ? $v : $default;
 }
 
-define('DB_HOST', env('DB_HOST', 'srv756.hstgr.io'));
-define('DB_NAME', env('DB_NAME'));
-define('DB_USER', env('DB_USER'));
-define('DB_PASS', env('DB_PASS'));
+define('DB_HOST', env('DB_HOST', 'localhost'));
+define('DB_NAME', env('DB_NAME', 'u699505866_gapbridgecs'));
+define('DB_USER', env('DB_USER', 'u699505866_gapbridgecs'));
+define('DB_PASS', env('DB_PASS'));   // must be set via Hostinger env var — no default
