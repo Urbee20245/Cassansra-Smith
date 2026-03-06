@@ -1,4 +1,8 @@
 <?php
+ini_set('display_errors', '1');
+error_reporting(E_ALL);
+header('Content-Type: application/json');
+
 // One-time setup: creates all required database tables.
 // Visit this URL once after deploying, then delete or restrict access.
 require_once __DIR__ . '/config.php';
@@ -63,5 +67,4 @@ foreach ($queries as $sql) {
 }
 $conn->close();
 
-header('Content-Type: application/json');
 echo json_encode(['setup' => 'complete', 'tables' => $results], JSON_PRETTY_PRINT);
