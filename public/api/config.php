@@ -8,17 +8,18 @@ function env(string $key, string $default = ''): string {
     return ($v !== false && $v !== '') ? $v : $default;
 }
 
-define('DB_HOST', env('DB_HOST', 'localhost'));
-define('DB_NAME', env('DB_NAME', 'u699505866_gapbridgecs'));
-define('DB_USER', env('DB_USER', 'u699505866_gapbridgecs'));
-define('DB_PASS', env('DB_PASS'));
-
-// If env var still empty, load from a credentials file stored OUTSIDE public_html
+// If env vars are not set, load from a credentials file stored OUTSIDE public_html
 // so it survives git redeployments and is never web-accessible.
 // Path: /home/u699505866/db_credentials.php  (4 levels up from /public_html/api/)
-if (DB_PASS === '') {
+// Must be included BEFORE defining constants so its define() calls take effect.
+if (env('DB_PASS') === '') {
     $credFile = dirname(__DIR__, 4) . '/db_credentials.php';
     if (file_exists($credFile)) {
         require_once $credFile;
     }
 }
+
+if (!defined('DB_HOST')) define('DB_HOST', env('DB_HOST', 'localhost'));
+if (!defined('DB_NAME')) define('DB_NAME', env('DB_NAME', 'u699505866_gapbridgecs'));
+if (!defined('DB_USER')) define('DB_USER', env('DB_USER', 'u699505866_gapbridgecs'));
+if (!defined('DB_PASS')) define('DB_PASS', env('DB_PASS'));

@@ -7,17 +7,6 @@ header('Content-Type: application/json');
 // Visit this URL once after deploying, then delete or restrict access.
 require_once __DIR__ . '/config.php';
 
-// DEBUG — remove after confirming connection works
-$credFile = dirname(__DIR__, 4) . '/db_credentials.php';
-if (defined('DB_PASS') && DB_PASS === '') {
-    die(json_encode([
-        'debug' => 'DB_PASS is empty',
-        'looking_for_cred_file' => $credFile,
-        'cred_file_exists' => file_exists($credFile),
-        '__DIR__' => __DIR__,
-    ]));
-}
-
 $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 if ($conn->connect_error) {
     die(json_encode(['error' => 'Connection failed: ' . $conn->connect_error]));
