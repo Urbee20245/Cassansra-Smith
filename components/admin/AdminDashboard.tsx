@@ -8,31 +8,19 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Event, AdminLink, AdminSettings, EventRegistration } from '../../types';
-
-// ─── API helpers ─────────────────────────────────────────────────────────────
-// Always call the Hostinger server directly so PHP works whether this page
-// is viewed via AI Studio, local dev, or any other origin.
-const API_BASE = 'https://gapbridgecs.com';
-
-const API = {
-  events:        `${API_BASE}/api/events.php`,
-  links:         `${API_BASE}/api/links.php`,
-  registrations: `${API_BASE}/api/registrations.php`,
-  settings:      `${API_BASE}/api/settings.php`,
-  status:        `${API_BASE}/api/status.php`,
-};
-
-async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json' },
-    ...opts,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(err.error ?? `HTTP ${res.status}`);
-  }
-  return res.json();
-}
+import {
+  fetchEvents as sbFetchEvents,
+  fetchLinks as sbFetchLinks,
+  fetchRegistrations as sbFetchRegistrations,
+  fetchSettings as sbFetchSettings,
+  createEvent as sbCreateEvent,
+  updateEvent as sbUpdateEvent,
+  deleteEvent as sbDeleteEvent,
+  createLink as sbCreateLink,
+  updateLink as sbUpdateLink,
+  deleteLink as sbDeleteLink,
+  saveSettings as sbSaveSettings,
+} from '../../lib/supabase';
 
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
@@ -882,11 +870,12 @@ const AdminDashboard: React.FC = () => {
   }, [isAuthenticated]);
 
   const checkDbStatus = async () => {
+    // Supabase is always connected — verify by fetching settings
     try {
-      const s = await apiFetch<{ connected: boolean; all_ready: boolean; error?: string }>(API.status);
-      setDbStatus(s);
-    } catch {
-      setDbStatus({ connected: false, all_ready: false, error: 'Could not reach /api/status.php' });
+      await sbFetchSettings();
+      setDbStatus({ connected: true, all_ready: true });
+    } catch (e: any) {
+      setDbStatus({ connected: false, all_ready: false, error: e.message });
     }
   };
 
@@ -899,25 +888,25 @@ const AdminDashboard: React.FC = () => {
 
   const fetchSettings = async () => {
     setLoadingSettings(true);
-    try { setSettings(await apiFetch<AdminSettings>(API.settings)); } catch { /* keep defaults */ }
+    try { setSettings(await sbFetchSettings()); } catch { /* keep defaults */ }
     finally { setLoadingSettings(false); }
   };
 
   const fetchEvents = async () => {
     setLoadingEvents(true);
-    try { setEvents(await apiFetch<Event[]>(API.events)); } catch { setEvents([]); }
+    try { setEvents(await sbFetchEvents()); } catch { setEvents([]); }
     finally { setLoadingEvents(false); }
   };
 
   const fetchLinks = async () => {
     setLoadingLinks(true);
-    try { setLinks(await apiFetch<AdminLink[]>(API.links)); } catch { setLinks([]); }
+    try { setLinks(await sbFetchLinks()); } catch { setLinks([]); }
     finally { setLoadingLinks(false); }
   };
 
   const fetchLeads = async () => {
     setLoadingLeads(true);
-    try { setRegistrations(await apiFetch<EventRegistration[]>(API.registrations)); } catch { setRegistrations([]); }
+    try { setRegistrations(await sbFetchRegistrations()); } catch { setRegistrations([]); }
     finally { setLoadingLeads(false); }
   };
 
@@ -925,36 +914,36 @@ const AdminDashboard: React.FC = () => {
   const handleSettingsChange = async (s: AdminSettings) => {
     setSettings(s);
     setSavingSettings(true);
-    try { await apiFetch(API.settings, { method: 'POST', body: JSON.stringify(s) }); }
+    try { await sbSaveSettings(s); }
     catch (err: any) { alert('Failed to save settings: ' + err.message); }
     finally { setSavingSettings(false); }
   };
 
   // Events CRUD
   const addEvent = async (ev: Event) => {
-    await apiFetch(API.events, { method: 'POST', body: JSON.stringify(ev) });
+    await sbCreateEvent(ev);
     await fetchEvents();
   };
   const editEvent = async (ev: Event) => {
-    await apiFetch(`${API.events}?id=${ev.id}`, { method: 'PUT', body: JSON.stringify(ev) });
+    await sbUpdateEvent(ev);
     await fetchEvents();
   };
   const deleteEvent = async (id: string) => {
-    await apiFetch(`${API.events}?id=${id}`, { method: 'DELETE' });
+    await sbDeleteEvent(id);
     await fetchEvents();
   };
 
   // Links CRUD
   const addLink = async (link: AdminLink) => {
-    await apiFetch(API.links, { method: 'POST', body: JSON.stringify(link) });
+    await sbCreateLink(link);
     await fetchLinks();
   };
   const editLink = async (link: AdminLink) => {
-    await apiFetch(`${API.links}?id=${link.id}`, { method: 'PUT', body: JSON.stringify(link) });
+    await sbUpdateLink(link);
     await fetchLinks();
   };
   const deleteLink = async (id: string) => {
-    await apiFetch(`${API.links}?id=${id}`, { method: 'DELETE' });
+    await sbDeleteLink(id);
     await fetchLinks();
   };
 

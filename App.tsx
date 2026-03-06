@@ -6,9 +6,13 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AdminLogin from './components/admin/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
 import { Event, AdminLink, AdminSettings, EventRegistration } from './types';
-
-// Always call Hostinger directly so PHP works from any origin (AI Studio, etc.)
-const API_BASE = 'https://gapbridgecs.com';
+import {
+  fetchEvents as sbFetchEvents,
+  fetchLinks as sbFetchLinks,
+  fetchSettings as sbFetchSettings,
+  createRegistration as sbCreateRegistration,
+  SUBMIT_LEAD_URL,
+} from './lib/supabase';
 
 // Define the external URL for Cassandra's photo
 const CASSANDRA_PHOTO_URL = "https://medicarefor65.s3.amazonaws.com/2026/01/25145552/cshsphoto.png";
@@ -134,7 +138,7 @@ const EventRegistrationModal: React.FC<{
 
     // Non-blocking: send to backend for email notification
     try {
-      await fetch(`${API_BASE}/api/submit-lead.php`, {
+      await fetch(SUBMIT_LEAD_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -143,7 +147,7 @@ const EventRegistrationModal: React.FC<{
           topic: 'Event Registration',
           message: `Registering for event: ${event.title}${message ? `\n\nNote: ${message}` : ''}`,
           source: 'event-registration',
-          pageUrl: window.location.href,
+          page_url: window.location.href,
         }),
       });
     } catch { /* still record locally */ }
@@ -280,12 +284,12 @@ const EventsSection: React.FC = () => {
   const [ready, setReady]                 = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/settings.php`)
-      .then((r) => r.json())
-      .then((s: AdminSettings) => {
+    sbFetchSettings()
+      .then(async (s: AdminSettings) => {
         if (s.eventsEnabled) {
           setEventsEnabled(true);
-          return fetch(`${API_BASE}/api/events.php`).then((r) => r.json()).then(setEvents);
+          const evs = await sbFetchEvents();
+          setEvents(evs);
         }
       })
       .catch(() => {})
@@ -295,13 +299,7 @@ const EventsSection: React.FC = () => {
   if (!ready || !eventsEnabled || events.length === 0) return null;
 
   const handleRegistered = async (reg: EventRegistration) => {
-    try {
-      await fetch(`${API_BASE}/api/registrations.php`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reg),
-      });
-    } catch { /* non-blocking */ }
+    try { await sbCreateRegistration(reg); } catch { /* non-blocking */ }
   };
 
   return (
@@ -339,12 +337,12 @@ const LinksSection: React.FC = () => {
   const [ready, setReady]               = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/settings.php`)
-      .then((r) => r.json())
-      .then((s: AdminSettings) => {
+    sbFetchSettings()
+      .then(async (s: AdminSettings) => {
         if (s.linksEnabled) {
           setLinksEnabled(true);
-          return fetch(`${API_BASE}/api/links.php`).then((r) => r.json()).then(setLinks);
+          const ls = await sbFetchLinks();
+          setLinks(ls);
         }
       })
       .catch(() => {})
@@ -437,8 +435,7 @@ const ContactForm = () => {
     }
   };
 
-  // INSERT: Server endpoint path (no secrets in client)
-  const EMAIL_ENDPOINT = `${API_BASE}/api/submit-lead.php`;
+  const EMAIL_ENDPOINT = SUBMIT_LEAD_URL;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
