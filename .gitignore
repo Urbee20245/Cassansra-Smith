@@ -12,9 +12,8 @@ dist
 dist-ssr
 *.local
 
-# DB credentials — never commit, create manually on the server
-api/config.php
-config.php
+# Local credential overrides (use Hostinger env vars instead)
+config.local.php
 
 # Editor directories and files
 .vscode/*
