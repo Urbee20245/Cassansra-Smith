@@ -5,6 +5,21 @@ header('Content-Type: application/json');
 
 // One-time setup: creates all required database tables.
 // Visit this URL once after deploying, then delete or restrict access.
+
+// DEBUG — remove after confirming connection works
+$paths = [
+    'open_basedir'  => ini_get('open_basedir'),
+    'p4' => dirname(__DIR__, 4) . '/db_credentials.php',  // /home/u699505866/
+    'p3' => dirname(__DIR__, 3) . '/db_credentials.php',  // /home/u699505866/domains/
+    'p2' => dirname(__DIR__, 2) . '/db_credentials.php',  // /home/u699505866/domains/gapbridgecs.com/
+    'p1' => dirname(__DIR__, 1) . '/db_credentials.php',  // /home/.../public_html/
+];
+foreach ($paths as $k => $v) {
+    if ($k === 'open_basedir') continue;
+    $paths[$k] = ['path' => $v, 'exists' => file_exists($v)];
+}
+die(json_encode($paths, JSON_PRETTY_PRINT));
+
 require_once __DIR__ . '/config.php';
 
 $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
