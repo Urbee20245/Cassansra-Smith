@@ -26,11 +26,14 @@ RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
 
 # ----------------------------------------------------------
 # 4. SPA fallback — the critical fix for crawl-ability
-#    If the request is NOT a real file and NOT a real directory,
-#    serve index.html so React Router handles the route.
-#    This ensures /about, /services, /contact all return 200 OK
-#    instead of a 404, which is why Google cannot index the site.
+#    IMPORTANT: /api/ PHP files must be served directly by Apache,
+#    NOT caught by the React Router fallback.
 # ----------------------------------------------------------
+# Pass all /api/ requests straight through to PHP — never rewrite them
+RewriteRule ^api/ - [L]
+
+# If the request is NOT a real file and NOT a real directory,
+# serve index.html so React Router handles the route.
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ /index.html [L,QSA]
