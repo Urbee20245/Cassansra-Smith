@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState } from 'react';
 import { LS_KEYS } from '../types';
 
-const DEFAULT_USERNAME = 'admin';
-const DEFAULT_PASSWORD = 'CassAdmin2024!';
+const DEFAULT_USERNAME = 'csmith1103@live.com';
+const DEFAULT_PASSWORD = '$Tyrus2012';
 
 interface AuthContextType {
   isAuthenticated: boolean;

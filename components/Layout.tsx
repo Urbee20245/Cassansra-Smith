@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Link, Outlet } from 'react-router-dom';
 import { ShieldCheck, Menu, X, Phone, Mail, MapPin, Facebook, Linkedin, Twitter, Scale, Sparkles } from 'lucide-react';
 
 const Layout: React.FC = () => {
@@ -184,6 +184,9 @@ const Layout: React.FC = () => {
               <div className="text-xs text-slate-500 font-medium">
                 <p>&copy; {new Date().getFullYear()} Cassandra Smith Wealth & Insurance. All rights reserved.</p>
                 <p className="mt-1">Licensed in GA and SC. Not affiliated with any government agency.</p>
+                <p className="mt-1">
+                  <Link to="/admin/login" className="text-slate-700 hover:text-slate-400 transition text-[11px]">Admin</Link>
+                </p>
               </div>
               <div className="flex flex-col items-center md:items-end gap-1">
                 <span className="text-[10px] text-slate-600 uppercase tracking-widest font-bold">Digital Excellence by</span>

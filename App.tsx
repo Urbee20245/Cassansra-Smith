@@ -5,19 +5,11 @@ import { HeartPulse, FileHeart, Users, CheckCircle, ArrowRight, Calendar, Star, 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AdminLogin from './components/admin/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
-import { Event, AdminLink, AdminSettings, EventRegistration, LS_KEYS } from './types';
+import { Event, AdminLink, AdminSettings, EventRegistration } from './types';
 
 // Define the external URL for Cassandra's photo
 const CASSANDRA_PHOTO_URL = "https://medicarefor65.s3.amazonaws.com/2026/01/25145552/cshsphoto.png";
 
-// --- localStorage helpers (shared with admin) ---
-const loadLS = <T,>(key: string, fallback: T): T => {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch { return fallback; }
-};
-const saveLS = <T,>(key: string, value: T) => localStorage.setItem(key, JSON.stringify(value));
 
 // --- Components ---
 
@@ -276,24 +268,37 @@ const EventCard: React.FC<{ event: Event; onRegister: () => void }> = ({ event, 
   </div>
 );
 
-// --- Events Section (reads from localStorage, shown on Home) ---
+// --- Events Section (fetches from MySQL API, shown on Home) ---
 
 const EventsSection: React.FC = () => {
-  const [settings] = useState<AdminSettings>(() =>
-    loadLS<AdminSettings>(LS_KEYS.SETTINGS, { eventsEnabled: false, linksEnabled: false })
-  );
-  const [events] = useState<Event[]>(() => loadLS<Event[]>(LS_KEYS.EVENTS, []));
-  const [registrations, setRegistrations] = useState<EventRegistration[]>(() =>
-    loadLS<EventRegistration[]>(LS_KEYS.REGISTRATIONS, [])
-  );
+  const [eventsEnabled, setEventsEnabled] = useState(false);
+  const [events, setEvents]               = useState<Event[]>([]);
   const [registerEvent, setRegisterEvent] = useState<Event | null>(null);
+  const [ready, setReady]                 = useState(false);
 
-  if (!settings.eventsEnabled || events.length === 0) return null;
+  useEffect(() => {
+    fetch('/api/settings.php')
+      .then((r) => r.json())
+      .then((s: AdminSettings) => {
+        if (s.eventsEnabled) {
+          setEventsEnabled(true);
+          return fetch('/api/events.php').then((r) => r.json()).then(setEvents);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setReady(true));
+  }, []);
 
-  const handleRegistered = (reg: EventRegistration) => {
-    const updated = [reg, ...registrations];
-    setRegistrations(updated);
-    saveLS(LS_KEYS.REGISTRATIONS, updated);
+  if (!ready || !eventsEnabled || events.length === 0) return null;
+
+  const handleRegistered = async (reg: EventRegistration) => {
+    try {
+      await fetch('/api/registrations.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reg),
+      });
+    } catch { /* non-blocking */ }
   };
 
   return (
@@ -316,22 +321,34 @@ const EventsSection: React.FC = () => {
         <EventRegistrationModal
           event={registerEvent}
           onClose={() => setRegisterEvent(null)}
-          onSubmitted={(reg) => { handleRegistered(reg); }}
+          onSubmitted={handleRegistered}
         />
       )}
     </section>
   );
 };
 
-// --- Links Section (reads from localStorage, shown on Home above footer) ---
+// --- Links Section (fetches from MySQL API, shown on Home above footer) ---
 
 const LinksSection: React.FC = () => {
-  const [settings] = useState<AdminSettings>(() =>
-    loadLS<AdminSettings>(LS_KEYS.SETTINGS, { eventsEnabled: false, linksEnabled: false })
-  );
-  const [links] = useState<AdminLink[]>(() => loadLS<AdminLink[]>(LS_KEYS.LINKS, []));
+  const [linksEnabled, setLinksEnabled] = useState(false);
+  const [links, setLinks]               = useState<AdminLink[]>([]);
+  const [ready, setReady]               = useState(false);
 
-  if (!settings.linksEnabled || links.length === 0) return null;
+  useEffect(() => {
+    fetch('/api/settings.php')
+      .then((r) => r.json())
+      .then((s: AdminSettings) => {
+        if (s.linksEnabled) {
+          setLinksEnabled(true);
+          return fetch('/api/links.php').then((r) => r.json()).then(setLinks);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setReady(true));
+  }, []);
+
+  if (!ready || !linksEnabled || links.length === 0) return null;
 
   return (
     <section className="py-20 bg-white border-t border-slate-100">

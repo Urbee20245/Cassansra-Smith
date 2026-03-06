@@ -137,9 +137,6 @@ const AdminLogin: React.FC = () => {
           </div>
         </div>
 
-        <p className="text-center text-slate-600 text-xs mt-6">
-          Default credentials: <span className="font-mono bg-slate-800 text-slate-300 px-2 py-0.5 rounded">admin</span> / <span className="font-mono bg-slate-800 text-slate-300 px-2 py-0.5 rounded">CassAdmin2024!</span>
-        </p>
       </div>
     </div>
   );
