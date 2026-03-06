@@ -185,7 +185,7 @@ const Layout: React.FC = () => {
                 <p>&copy; {new Date().getFullYear()} Cassandra Smith Wealth & Insurance. All rights reserved.</p>
                 <p className="mt-1">Licensed in GA and SC. Not affiliated with any government agency.</p>
                 <p className="mt-1">
-                  <Link to="/admin/login" className="text-slate-700 hover:text-slate-400 transition text-[11px]">Admin</Link>
+                  <Link to="/admin/login" className="text-slate-500 hover:text-slate-300 transition text-[11px]">Admin</Link>
                 </p>
               </div>
               <div className="flex flex-col items-center md:items-end gap-1">
