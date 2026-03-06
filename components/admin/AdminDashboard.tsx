@@ -16,6 +16,7 @@ const API = {
   links:         '/api/links.php',
   registrations: '/api/registrations.php',
   settings:      '/api/settings.php',
+  status:        '/api/status.php',
 };
 
 async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
@@ -357,6 +358,61 @@ const LinkFormModal: React.FC<{
 
 // ─── Dashboard Section ────────────────────────────────────────────────────────
 
+type DbStatus = { connected: boolean; all_ready: boolean; error?: string } | null;
+
+const DbStatusBanner: React.FC<{ dbStatus: DbStatus; onRecheck: () => void }> = ({ dbStatus, onRecheck }) => {
+  if (dbStatus === null) {
+    return (
+      <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm text-slate-500">
+        <RefreshCw size={16} className="animate-spin shrink-0" />
+        Checking database connection…
+      </div>
+    );
+  }
+  if (!dbStatus.connected) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-2xl px-5 py-4 text-sm">
+        <div className="flex items-center gap-2 font-bold text-red-700 mb-1">
+          <AlertCircle size={16} className="shrink-0" /> Database Not Connected
+        </div>
+        <p className="text-red-600 mb-2">
+          PHP cannot reach the MySQL database. Events will not save or load across browsers until this is fixed.
+        </p>
+        {dbStatus.error && (
+          <p className="font-mono text-xs bg-red-100 text-red-700 rounded px-3 py-2 mb-3 break-all">{dbStatus.error}</p>
+        )}
+        <p className="text-red-600 text-xs mb-3">
+          <strong>Check:</strong> Hostinger → Databases → make sure the database, username, and password in <code>public/api/config.php</code> exactly match what Hostinger shows.
+        </p>
+        <button onClick={onRecheck} className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition">
+          <RefreshCw size={12} /> Recheck Connection
+        </button>
+      </div>
+    );
+  }
+  if (!dbStatus.all_ready) {
+    return (
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 text-sm">
+        <div className="flex items-center gap-2 font-bold text-amber-700 mb-1">
+          <AlertCircle size={16} className="shrink-0" /> Database Connected — Setting Up Tables
+        </div>
+        <p className="text-amber-700 mb-3">
+          Connected to MySQL successfully. The required tables are being created automatically on the next API call — refresh the page in a moment.
+        </p>
+        <button onClick={onRecheck} className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition">
+          <RefreshCw size={12} /> Recheck
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl px-5 py-4 text-sm text-green-800 font-semibold">
+      <Check size={16} className="text-green-600 shrink-0" />
+      Database connected — all tables ready. Events persist across all browsers.
+    </div>
+  );
+};
+
 const DashboardSection: React.FC<{
   settings: AdminSettings;
   savingSettings: boolean;
@@ -364,7 +420,9 @@ const DashboardSection: React.FC<{
   events: Event[];
   links: AdminLink[];
   registrations: EventRegistration[];
-}> = ({ settings, savingSettings, onSettingsChange, events, links, registrations }) => {
+  dbStatus: DbStatus;
+  onDbRecheck: () => void;
+}> = ({ settings, savingSettings, onSettingsChange, events, links, registrations, dbStatus, onDbRecheck }) => {
   const stats = [
     { label: 'Total Events',  value: events.length,        icon: <CalendarDays size={20} />, color: 'bg-blue-50 text-blue-600' },
     { label: 'Active Links',  value: links.length,         icon: <Link2 size={20} />,        color: 'bg-secondary-50 text-secondary-600' },
@@ -377,6 +435,8 @@ const DashboardSection: React.FC<{
         <h2 className="text-2xl font-bold text-slate-900 mb-1">Dashboard</h2>
         <p className="text-slate-500 text-sm">Overview and feature toggles for your website.</p>
       </div>
+
+      <DbStatusBanner dbStatus={dbStatus} onRecheck={onDbRecheck} />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {stats.map((s) => (
@@ -416,9 +476,6 @@ const DashboardSection: React.FC<{
         </div>
       </div>
 
-      <div className="bg-primary-50 border border-primary-100 rounded-2xl p-5 text-sm text-primary-800">
-        <strong>Tip:</strong> All data is stored in your Hostinger MySQL database — nothing is lost if you clear your browser or switch devices.
-      </div>
     </div>
   );
 };
@@ -812,10 +869,23 @@ const AdminDashboard: React.FC = () => {
   const [loadingLeads,    setLoadingLeads]     = useState(true);
   const [savingSettings,  setSavingSettings]   = useState(false);
 
+  // DB status
+  const [dbStatus, setDbStatus] = useState<DbStatus>(null);
+
   useEffect(() => {
     if (!isAuthenticated) { navigate('/admin/login', { replace: true }); return; }
     fetchAll();
+    checkDbStatus();
   }, [isAuthenticated]);
+
+  const checkDbStatus = async () => {
+    try {
+      const s = await apiFetch<{ connected: boolean; all_ready: boolean; error?: string }>(API.status);
+      setDbStatus(s);
+    } catch {
+      setDbStatus({ connected: false, all_ready: false, error: 'Could not reach /api/status.php' });
+    }
+  };
 
   const fetchAll = () => {
     fetchSettings();
@@ -975,6 +1045,8 @@ const AdminDashboard: React.FC = () => {
               events={events}
               links={links}
               registrations={registrations}
+              dbStatus={dbStatus}
+              onDbRecheck={checkDbStatus}
             />
           )}
           {section === 'events' && (

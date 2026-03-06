@@ -13,6 +13,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
+function ensure_tables($conn) {
+    $queries = [
+        "CREATE TABLE IF NOT EXISTS events (
+            id           VARCHAR(100)  NOT NULL PRIMARY KEY,
+            heading      VARCHAR(255)  NOT NULL DEFAULT '',
+            title        VARCHAR(255)  NOT NULL,
+            description  TEXT          NOT NULL DEFAULT '',
+            image_url    TEXT,
+            event_date   DATETIME      NOT NULL,
+            location     VARCHAR(255),
+            created_at   DATETIME      DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
+        "CREATE TABLE IF NOT EXISTS links (
+            id           VARCHAR(100)  NOT NULL PRIMARY KEY,
+            label        VARCHAR(255)  NOT NULL,
+            url          TEXT          NOT NULL,
+            description  TEXT,
+            created_at   DATETIME      DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
+        "CREATE TABLE IF NOT EXISTS registrations (
+            id            VARCHAR(100)  NOT NULL PRIMARY KEY,
+            event_id      VARCHAR(100)  NOT NULL DEFAULT '',
+            event_title   VARCHAR(255)  NOT NULL DEFAULT '',
+            first_name    VARCHAR(255)  NOT NULL,
+            last_name     VARCHAR(255)  NOT NULL,
+            email         VARCHAR(255),
+            phone         VARCHAR(50),
+            message       TEXT,
+            registered_at DATETIME      DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
+        "CREATE TABLE IF NOT EXISTS admin_settings (
+            setting_key   VARCHAR(50)   NOT NULL PRIMARY KEY,
+            setting_value TEXT          NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+    ];
+    foreach ($queries as $sql) {
+        $conn->query($sql);
+    }
+}
+
 function get_db() {
     $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
     if ($conn->connect_error) {
@@ -21,6 +64,7 @@ function get_db() {
         exit;
     }
     $conn->set_charset('utf8mb4');
+    ensure_tables($conn);
     return $conn;
 }
 
