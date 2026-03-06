@@ -13,8 +13,12 @@ define('DB_NAME', env('DB_NAME', 'u699505866_gapbridgecs'));
 define('DB_USER', env('DB_USER', 'u699505866_gapbridgecs'));
 define('DB_PASS', env('DB_PASS'));
 
-// If env var still empty, load from a local credentials file (never committed to git).
-// Create this file manually in Hostinger File Manager if needed.
-if (DB_PASS === '' && file_exists(__DIR__ . '/credentials.php')) {
-    require_once __DIR__ . '/credentials.php';
+// If env var still empty, load from a credentials file stored OUTSIDE public_html
+// so it survives git redeployments and is never web-accessible.
+// Path: /home/u699505866/db_credentials.php  (4 levels up from /public_html/api/)
+if (DB_PASS === '') {
+    $credFile = dirname(__DIR__, 4) . '/db_credentials.php';
+    if (file_exists($credFile)) {
+        require_once $credFile;
+    }
 }
