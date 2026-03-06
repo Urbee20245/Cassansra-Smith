@@ -29,6 +29,12 @@ RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
 #    IMPORTANT: /api/ PHP files must be served directly by Apache,
 #    NOT caught by the React Router fallback.
 # ----------------------------------------------------------
+# Handle CORS preflight (OPTIONS) at the server level.
+# This ensures cross-origin requests from AI Studio or any other
+# origin get a proper 200 response before the actual request.
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^api/ - [R=200,L]
+
 # Pass all /api/ requests straight through to PHP — never rewrite them
 RewriteRule ^api/ - [L]
 
@@ -61,9 +67,16 @@ RewriteRule ^ /index.html [L,QSA]
 # 6. Security headers (invisible, does not change appearance)
 # ----------------------------------------------------------
 <IfModule mod_headers.c>
+  # CORS for /api/ — allow requests from any origin (AI Studio, local dev, etc.)
+  # SetEnvIf works on both Apache and LiteSpeed.
+  SetEnvIf Request_URI "^/api/" IS_API_REQUEST
+  Header always set Access-Control-Allow-Origin "*" env=IS_API_REQUEST
+  Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" env=IS_API_REQUEST
+  Header always set Access-Control-Allow-Headers "Content-Type" env=IS_API_REQUEST
+
   # Prevent MIME-type sniffing
   Header set X-Content-Type-Options "nosniff"
-  # Prevent click-jacking
+  # Prevent click-jacking (not applied to /api/ since they're not pages)
   Header set X-Frame-Options "SAMEORIGIN"
   # Basic XSS protection
   Header set X-XSS-Protection "1; mode=block"
