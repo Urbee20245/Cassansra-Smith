@@ -12,8 +12,9 @@ dist
 dist-ssr
 *.local
 
-# Local credential overrides (use Hostinger env vars instead)
+# Local credential files — create these directly in Hostinger File Manager
 config.local.php
+api/.env
 
 # Editor directories and files
 .vscode/*
