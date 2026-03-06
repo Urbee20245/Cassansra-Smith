@@ -10,13 +10,16 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Event, AdminLink, AdminSettings, EventRegistration } from '../../types';
 
 // ─── API helpers ─────────────────────────────────────────────────────────────
+// Always call the Hostinger server directly so PHP works whether this page
+// is viewed via AI Studio, local dev, or any other origin.
+const API_BASE = 'https://gapbridgecs.com';
 
 const API = {
-  events:        '/api/events.php',
-  links:         '/api/links.php',
-  registrations: '/api/registrations.php',
-  settings:      '/api/settings.php',
-  status:        '/api/status.php',
+  events:        `${API_BASE}/api/events.php`,
+  links:         `${API_BASE}/api/links.php`,
+  registrations: `${API_BASE}/api/registrations.php`,
+  settings:      `${API_BASE}/api/settings.php`,
+  status:        `${API_BASE}/api/status.php`,
 };
 
 async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
@@ -382,7 +385,7 @@ const DbStatusBanner: React.FC<{ dbStatus: DbStatus; onRecheck: () => void }> = 
           <p className="font-mono text-xs bg-red-100 text-red-700 rounded px-3 py-2 mb-3 break-all">{dbStatus.error}</p>
         )}
         <p className="text-red-600 text-xs mb-3">
-          <strong>Check:</strong> Hostinger → Databases → make sure the database, username, and password in <code>public/api/config.php</code> exactly match what Hostinger shows.
+          <strong>Check:</strong> Hostinger → Databases → make sure the database, username, and password in <code>api/config.php</code> exactly match what Hostinger shows.
         </p>
         <button onClick={onRecheck} className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition">
           <RefreshCw size={12} /> Recheck Connection
