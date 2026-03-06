@@ -1,6 +1,8 @@
 <?php
 // Shared database connection helper
-require_once __DIR__ . '/config.php';
+// config.php lives at /public_html/config.php (one level above /api/).
+// It is NOT in git — create it manually on the server with your real credentials.
+require_once __DIR__ . '/../config.php';
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');

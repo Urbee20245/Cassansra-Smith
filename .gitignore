@@ -12,8 +12,9 @@ dist
 dist-ssr
 *.local
 
-# Local credentials — never commit
-api/credentials.php
+# DB credentials — never commit, create manually on the server
+api/config.php
+config.php
 
 # Editor directories and files
 .vscode/*
