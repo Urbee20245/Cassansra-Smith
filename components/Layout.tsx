@@ -190,10 +190,10 @@ const Layout: React.FC = () => {
               </div>
               <div className="flex flex-col items-center md:items-end gap-1">
                 <span className="text-[10px] text-slate-600 uppercase tracking-widest font-bold">Digital Excellence by</span>
-                <a 
-                  href="https://customwebsitesplus.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
+                <a
+                  href="https://www.customwebsitesplus.com/pro-sites"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="group relative flex items-center gap-2"
                 >
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-secondary-400 via-secondary-200 to-secondary-500 font-black uppercase tracking-[0.25em] text-sm transition-all duration-300 group-hover:drop-shadow-[0_0_10px_rgba(212,175,55,0.4)]">
