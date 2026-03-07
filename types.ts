@@ -36,6 +36,12 @@ export interface EventRegistration {
   phone: string;
   message?: string;
   registeredAt: string;
+  // Form lead fields (populated for contact form submissions)
+  source?: string;        // 'event-registration' | 'secure-strategy-session' | 'future-consultation'
+  topic?: string;         // insurance topic / interest
+  timeline?: string;      // urgency selection
+  priorityScore?: number; // 1–10 intent score
+  futureDate?: string;    // preferred follow-up date for non-urgent leads
 }
 
 export interface AdminLink {

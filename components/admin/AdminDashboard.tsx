@@ -414,10 +414,14 @@ const DashboardSection: React.FC<{
   dbStatus: DbStatus;
   onDbRecheck: () => void;
 }> = ({ settings, savingSettings, onSettingsChange, events, links, registrations, dbStatus, onDbRecheck }) => {
+  const formLeadCount  = registrations.filter(r => r.source && r.source !== 'event-registration').length;
+  const eventLeadCount = registrations.filter(r => r.source === 'event-registration' || (!r.source && r.eventTitle && r.eventId)).length;
+
   const stats = [
-    { label: 'Total Events',  value: events.length,        icon: <CalendarDays size={20} />, color: 'bg-blue-50 text-blue-600' },
-    { label: 'Active Links',  value: links.length,         icon: <Link2 size={20} />,        color: 'bg-secondary-50 text-secondary-600' },
-    { label: 'Event Leads',   value: registrations.length, icon: <Users size={20} />,        color: 'bg-green-50 text-green-600' },
+    { label: 'Total Events', value: events.length,       icon: <CalendarDays size={20} />, color: 'bg-blue-50 text-blue-600' },
+    { label: 'Active Links', value: links.length,        icon: <Link2 size={20} />,        color: 'bg-secondary-50 text-secondary-600' },
+    { label: 'Form Leads',   value: formLeadCount,       icon: <Users size={20} />,        color: 'bg-green-50 text-green-600' },
+    { label: 'Event Leads',  value: eventLeadCount,      icon: <CalendarDays size={20} />, color: 'bg-purple-50 text-purple-600' },
   ];
 
   return (
@@ -429,7 +433,7 @@ const DashboardSection: React.FC<{
 
       <DbStatusBanner dbStatus={dbStatus} onRecheck={onDbRecheck} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {stats.map((s) => (
           <div key={s.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex items-center gap-4">
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${s.color}`}>{s.icon}</div>
@@ -701,6 +705,8 @@ const LeadsSection: React.FC<{
   loading: boolean;
   onRefresh: () => void;
 }> = ({ registrations, loading, onRefresh }) => {
+  const [activeTab, setActiveTab] = useState<'event' | 'form'>('form');
+
   const formatDate = (iso: string) => {
     try {
       return new Date(iso).toLocaleString('en-US', {
@@ -710,58 +716,193 @@ const LeadsSection: React.FC<{
     } catch { return iso; }
   };
 
+  // Event leads = came through event registration flow
+  const eventLeads = registrations.filter(r => r.source === 'event-registration' || (!r.source && r.eventTitle && r.eventId));
+  // Form leads = came through the contact/consultation form
+  const formLeads = registrations.filter(r => r.source && r.source !== 'event-registration');
+
+  const EmptyState = ({ message, sub }: { message: string; sub: string }) => (
+    <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-12 text-center">
+      <Users size={40} className="mx-auto text-slate-300 mb-4" />
+      <p className="text-slate-500 font-medium">{message}</p>
+      <p className="text-slate-400 text-sm mt-1">{sub}</p>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-1">Event Leads</h2>
-          <p className="text-slate-500 text-sm">Visitor registrations submitted through event signup forms.</p>
+          <h2 className="text-2xl font-bold text-slate-900 mb-1">Leads</h2>
+          <p className="text-slate-500 text-sm">All leads from events and contact forms, fully organised.</p>
         </div>
         <button onClick={onRefresh} className="p-2.5 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition" title="Refresh">
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
 
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-4">
+          <div className="w-11 h-11 bg-blue-50 rounded-xl flex items-center justify-center shrink-0">
+            <CalendarDays size={20} className="text-blue-600" />
+          </div>
+          <div>
+            <div className="text-2xl font-black text-slate-900">{loading ? '…' : eventLeads.length}</div>
+            <div className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-0.5">Event Leads</div>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-4">
+          <div className="w-11 h-11 bg-secondary-50 rounded-xl flex items-center justify-center shrink-0">
+            <Users size={20} className="text-secondary-600" />
+          </div>
+          <div>
+            <div className="text-2xl font-black text-slate-900">{loading ? '…' : formLeads.length}</div>
+            <div className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-0.5">Form Leads</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
+        <button
+          onClick={() => setActiveTab('form')}
+          className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${activeTab === 'form' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+        >
+          Form Leads {!loading && <span className="ml-1.5 text-xs bg-secondary-100 text-secondary-700 font-bold px-1.5 py-0.5 rounded-full">{formLeads.length}</span>}
+        </button>
+        <button
+          onClick={() => setActiveTab('event')}
+          className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${activeTab === 'event' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+        >
+          Event Leads {!loading && <span className="ml-1.5 text-xs bg-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded-full">{eventLeads.length}</span>}
+        </button>
+      </div>
+
       {loading ? (
         <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center text-slate-400">
           <RefreshCw size={28} className="mx-auto animate-spin mb-3" />
-          <p className="text-sm">Loading registrations…</p>
+          <p className="text-sm">Loading leads…</p>
         </div>
-      ) : registrations.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-12 text-center">
-          <Users size={40} className="mx-auto text-slate-300 mb-4" />
-          <p className="text-slate-500 font-medium">No registrations yet.</p>
-          <p className="text-slate-400 text-sm mt-1">Event registrations will appear here once visitors sign up.</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-100">
-                  {['Name', 'Email', 'Phone', 'Event', 'Registered'].map((h) => (
-                    <th key={h} className="text-left px-5 py-3.5 font-semibold text-slate-600 text-xs uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {registrations.map((reg) => (
-                  <tr key={reg.id} className="hover:bg-slate-50 transition">
-                    <td className="px-5 py-4 font-medium text-slate-900">{reg.firstName} {reg.lastName}</td>
-                    <td className="px-5 py-4 text-slate-600">
-                      {reg.email
-                        ? <a href={`mailto:${reg.email}`} className="hover:text-primary-600 transition">{reg.email}</a>
-                        : '—'}
-                    </td>
-                    <td className="px-5 py-4 text-slate-600">{reg.phone || '—'}</td>
-                    <td className="px-5 py-4 text-slate-600 max-w-[180px] truncate">{reg.eventTitle}</td>
-                    <td className="px-5 py-4 text-slate-400 whitespace-nowrap">{formatDate(reg.registeredAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      ) : activeTab === 'form' ? (
+        /* ── Form Leads ── */
+        formLeads.length === 0 ? (
+          <EmptyState message="No form leads yet." sub="Contact form submissions will appear here once visitors fill out the consultation form." />
+        ) : (
+          <div className="space-y-4">
+            {formLeads.map((reg) => {
+              const isHot = reg.source === 'secure-strategy-session';
+              return (
+                <div key={reg.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                  {/* Lead badge */}
+                  <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-base">{reg.firstName} {reg.lastName}</h3>
+                      <p className="text-xs text-slate-400 mt-0.5">{formatDate(reg.registeredAt)}</p>
+                    </div>
+                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${isHot ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                      {isHot ? '🔥 Hot Lead — Strategy Session' : '📅 Future Consultation'}
+                    </span>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                    {reg.email && (
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Email</p>
+                        <a href={`mailto:${reg.email}`} className="text-primary-600 hover:underline break-all">{reg.email}</a>
+                      </div>
+                    )}
+                    {reg.phone && (
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Phone</p>
+                        <a href={`tel:${reg.phone}`} className="text-slate-800 hover:underline">{reg.phone}</a>
+                      </div>
+                    )}
+                    {reg.topic && (
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Topic</p>
+                        <p className="text-slate-800">{reg.topic}</p>
+                      </div>
+                    )}
+                    {reg.timeline && (
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Timeline</p>
+                        <p className="text-slate-800">{reg.timeline}</p>
+                      </div>
+                    )}
+                    {reg.priorityScore != null && (
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Priority Score</p>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-bold text-base ${reg.priorityScore >= 7 ? 'text-red-600' : reg.priorityScore >= 4 ? 'text-amber-600' : 'text-slate-600'}`}>
+                            {reg.priorityScore}/10
+                          </span>
+                          <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden max-w-[80px]">
+                            <div
+                              className={`h-full rounded-full ${reg.priorityScore >= 7 ? 'bg-red-500' : reg.priorityScore >= 4 ? 'bg-amber-400' : 'bg-slate-400'}`}
+                              style={{ width: `${reg.priorityScore * 10}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {reg.futureDate && (
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Follow-up Date</p>
+                        <p className="text-slate-800">{new Date(reg.futureDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {reg.message && (
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Message</p>
+                      <p className="text-slate-700 text-sm leading-relaxed">{reg.message}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        </div>
+        )
+      ) : (
+        /* ── Event Leads ── */
+        eventLeads.length === 0 ? (
+          <EmptyState message="No event leads yet." sub="Event registrations will appear here once visitors sign up for an event." />
+        ) : (
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100">
+                    {['Name', 'Email', 'Phone', 'Event', 'Message', 'Registered'].map((h) => (
+                      <th key={h} className="text-left px-5 py-3.5 font-semibold text-slate-600 text-xs uppercase tracking-wider">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {eventLeads.map((reg) => (
+                    <tr key={reg.id} className="hover:bg-slate-50 transition">
+                      <td className="px-5 py-4 font-medium text-slate-900 whitespace-nowrap">{reg.firstName} {reg.lastName}</td>
+                      <td className="px-5 py-4 text-slate-600">
+                        {reg.email
+                          ? <a href={`mailto:${reg.email}`} className="hover:text-primary-600 transition">{reg.email}</a>
+                          : '—'}
+                      </td>
+                      <td className="px-5 py-4 text-slate-600 whitespace-nowrap">
+                        {reg.phone ? <a href={`tel:${reg.phone}`} className="hover:text-primary-600 transition">{reg.phone}</a> : '—'}
+                      </td>
+                      <td className="px-5 py-4 text-slate-600 max-w-[180px] truncate">{reg.eventTitle || '—'}</td>
+                      <td className="px-5 py-4 text-slate-600 max-w-[200px] truncate">{reg.message || '—'}</td>
+                      <td className="px-5 py-4 text-slate-400 whitespace-nowrap">{formatDate(reg.registeredAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
       )}
     </div>
   );
@@ -953,7 +1094,7 @@ const AdminDashboard: React.FC = () => {
     { id: 'dashboard', label: 'Dashboard',  icon: <LayoutDashboard size={18} /> },
     { id: 'events',    label: 'Events',     icon: <CalendarDays size={18} />,  badge: events.length },
     { id: 'links',     label: 'Links',      icon: <Link2 size={18} />,         badge: links.length },
-    { id: 'leads',     label: 'Leads',      icon: <Users size={18} />,         badge: registrations.length },
+    { id: 'leads',     label: 'Leads',      icon: <Users size={18} />,         badge: registrations.length > 0 ? registrations.length : undefined },
     { id: 'settings',  label: 'Settings',   icon: <Settings size={18} /> },
   ];
 

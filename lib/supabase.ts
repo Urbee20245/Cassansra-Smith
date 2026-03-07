@@ -56,15 +56,20 @@ function linkToRow(l: AdminLink) {
 
 function rowToRegistration(r: Record<string, unknown>): EventRegistration {
   return {
-    id:           r.id           as string,
-    eventId:      r.event_id     as string,
-    eventTitle:   r.event_title  as string,
-    firstName:    r.first_name   as string,
-    lastName:     r.last_name    as string,
-    email:        (r.email       as string) ?? '',
-    phone:        (r.phone       as string) ?? '',
-    message:      (r.message     as string) ?? '',
-    registeredAt: r.registered_at as string,
+    id:            r.id            as string,
+    eventId:       (r.event_id     as string) ?? '',
+    eventTitle:    (r.event_title  as string) ?? '',
+    firstName:     r.first_name    as string,
+    lastName:      r.last_name     as string,
+    email:         (r.email        as string) ?? '',
+    phone:         (r.phone        as string) ?? '',
+    message:       (r.message      as string) ?? '',
+    registeredAt:  (r.registered_at as string) ?? (r.created_at as string) ?? '',
+    source:        (r.source        as string) ?? undefined,
+    topic:         (r.topic         as string) ?? undefined,
+    timeline:      (r.timeline      as string) ?? undefined,
+    priorityScore: r.priority_score != null ? Number(r.priority_score) : undefined,
+    futureDate:    (r.future_date   as string) ?? undefined,
   };
 }
 
